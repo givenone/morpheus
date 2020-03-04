@@ -51,7 +51,7 @@ void albedo(IplImage**& binary_images, CvMat**& mixed, CvMat*& diffuse, CvMat*& 
                 char* rgb_1 = binary_images[index*2]->imageData + binary_images[index*2]->widthStep * j + i * 3;
                 Chroma[0]->data.i[i*width + j] = max(rgb_1[0], max(rgb_1[1], rgb_1[2])) - min(rgb_1[0], min(rgb_1[1], rgb_1[2]));
                 char* rgb_2 = binary_images[index*2+1]->imageData + binary_images[index*2+1]->widthStep * j + i * 3;
-                Chroma[1]->data.i[i*width + j] = max(rgb_1[0], max(rgb_1[1], rgb_1[2])) - min(rgb_1[0], min(rgb_1[1], rgb_1[2]));
+                Chroma[1]->data.i[i*width + j] = max(rgb_2[0], max(rgb_2[1], rgb_2[2])) - min(rgb_2[0], min(rgb_2[1], rgb_2[2]));
 
                 delta[index]->data.i[i*width + j] = (Intensity->data.i[i*width + j] > Intensity_c->data.i[i*width + j]) ?
                 Intensity->data.i[i*width + j] - Chroma[0]->data.i[i*width + j] / Saturation_c->data.i[i*width + j] :

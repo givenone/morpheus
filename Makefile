@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -g -Wall
-SRCS = HelloCV.cpp
-PROG = HelloCV
+SRCS = binaryGradient.cpp
+PROG = binary
 
 OPENCV = `pkg-config opencv --cflags --libs`
 LIBS = $(OPENCV)
