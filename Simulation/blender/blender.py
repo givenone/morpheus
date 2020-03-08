@@ -32,19 +32,42 @@ if __name__ == "__main__":
     displaceGeomtry("forBlender.obj",
     "fromBlender.obj")
 """
-from math import radians
+from math import radians, atan
 
 
 def displaceLight(lightList):
+    # lightList : [x, y, z, scale, intensity]
+
     for i, light in enumerate(lightList) :
-        light_data = bpy.data.lights.new(name="light_{}".format(i), type='SpotLight')
+        # make light data
+        light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
         light_data.spot_size = radians(80)
         light_data.blend = 0.15
         light_data.specular = 1 #0.5 ?
+
+        # make light object
         light_object = bpy.data.objects.new(name="light_{}".format(i), object_data = light_data)
-        bpy.context.view_layer.objects.active = light_object
+
+        # link the scene
+        bpy.context.collection.objects.link(light_object)
+
+        #bpy.context.view_layer.objects.active = light_object
         light_object.location = lightList[:3]
-        light_object.angle
-        # TODO :: orientation, angle
-    dg = bpy.context.evaluated_depsgraph_get() 
-    dg.update()
+        light_object.rotation_euler = getRotation(lightList[:3])
+        # TODO :: setup more light properties
+
+    #dg = bpy.context.evaluated_depsgraph_get() 
+    #dg.update()
+
+def displaceCamera(cameraList) :
+    return True
+
+def displaceObject(object) :
+    # displace object at (0,0,0)
+    # file : obj path. 
+    return True
+
+def getRotation(location) :
+    if location[2] == 0 :
+        return (0, radians(90), atan(location[1]/location[0]))
+    return (-atan(location[0]/location[2]), atan(location[1]/location[2]), 0)
