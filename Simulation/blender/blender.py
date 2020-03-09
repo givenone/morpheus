@@ -33,18 +33,24 @@ if __name__ == "__main__":
     "fromBlender.obj")
 """
 from math import radians, atan
+import os
 
 
 def displaceLight(lightList):
     # lightList : [x, y, z, scale, intensity]
 
+    # set background light strength (ambient light)
+    bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = 2
+
     for i, light in enumerate(lightList) :
         # make light data
         light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
         light_data.spot_size = radians(80)
-        light_data.blend = 0.15
-        light_data.specular = 1 #0.5 ?
-
+        light_data.spot_blend = 0.15
+        light_data.specular_factor = 1 #0.5 ?
+        light_data.energy = 100
+        light_data.use_shadow = True
+        
         # make light object
         light_object = bpy.data.objects.new(name="light_{}".format(i), object_data = light_data)
 
@@ -52,8 +58,9 @@ def displaceLight(lightList):
         bpy.context.collection.objects.link(light_object)
 
         #bpy.context.view_layer.objects.active = light_object
-        light_object.location = lightList[:3]
-        light_object.rotation_euler = getRotation(lightList[:3])
+        scale = 5
+        light_object.location = [scale * x for x in light[:3]]
+        light_object.rotation_euler = getRotation(light[:3])
         # TODO :: setup more light properties
 
     #dg = bpy.context.evaluated_depsgraph_get() 
@@ -62,12 +69,18 @@ def displaceLight(lightList):
 def displaceCamera(cameraList) :
     return True
 
-def displaceObject(object) :
+def displaceObject(file_path) :
     # displace object at (0,0,0)
     # file : obj path. 
+    imported_object = bpy.ops.import_scene.obj(filepath=file_path)
+    file_name = os.path.basename(file_path).split('.')[0]
+    bpy.data.objects[file_name].dimensions = (1, 1, 1) # scale dimensions (size of an object)
+    
     return True
 
 def getRotation(location) :
     if location[2] == 0 :
         return (0, radians(90), atan(location[1]/location[0]))
     return (-atan(location[0]/location[2]), atan(location[1]/location[2]), 0)
+
+
