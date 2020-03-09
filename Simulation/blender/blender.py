@@ -32,9 +32,8 @@ if __name__ == "__main__":
     displaceGeomtry("forBlender.obj",
     "fromBlender.obj")
 """
-from math import radians, atan
+from math import radians, atan, sqrt, acos
 import os
-
 
 def displaceLight(lightList):
     # lightList : [x, y, z, scale, intensity]
@@ -53,21 +52,25 @@ def displaceLight(lightList):
         
         # make light object
         light_object = bpy.data.objects.new(name="light_{}".format(i), object_data = light_data)
-
         # link the scene
         bpy.context.collection.objects.link(light_object)
 
-        #bpy.context.view_layer.objects.active = light_object
+        #bpy.context.view_layer.objects.active = light_objects
         scale = 5
-        light_object.location = [scale * x for x in light[:3]]
-        light_object.rotation_euler = getRotation(light[:3])
+        light_object.location = [scale * x for x in light[1:]]
+        getRotation(light_object)
         # TODO :: setup more light properties
 
     #dg = bpy.context.evaluated_depsgraph_get() 
     #dg.update()
 
 def displaceCamera(cameraList) :
-    return True
+    #cameraList : [location : [x,y,z]]
+    for i, camera in enumerate(cameraList) :
+        bpy.ops.object.camera_add(location=camera['location'])
+        curr = bpy.context.object
+        getRotation(curr)
+        curr.name = "camera"+str(i)
 
 def displaceObject(file_path) :
     # displace object at (0,0,0)
@@ -76,11 +79,12 @@ def displaceObject(file_path) :
     file_name = os.path.basename(file_path).split('.')[0]
     bpy.data.objects[file_name].dimensions = (1, 1, 1) # scale dimensions (size of an object)
     
+    #TODO :: shading, other properties for rendering
     return True
 
-def getRotation(location) :
-    if location[2] == 0 :
-        return (0, radians(90), atan(location[1]/location[0]))
-    return (-atan(location[0]/location[2]), atan(location[1]/location[2]), 0)
 
-
+def getRotation(blender_object) :
+    (x, y, z) = blender_object.location
+    blender_object.rotation_mode = "AXIS_ANGLE"
+    w = acos(z/sqrt(pow(x,2)+pow(y,2)+pow(z,2)))
+    blender_object.rotation_axis_angle = [w, -y, x, 0]
