@@ -108,28 +108,10 @@ def get_dome_vertices():
 
         ('v', 0.0, -1.0, -0.0)  # 91
     ]
+    return obj
 
-    def apply_map(obj):
-        global map_dome_to_obj
-        actual = [0] * len(obj)
-        # convert from virtual mappings onto the real dome vertex numbering
-        for i in range(len(obj)):
-            actual[i] = obj[map_dome_to_obj[i]]
-        return actual
-        # print actual
 
-    def verify(actual, obj):
-        # verify the data - all pairs of vertices should oppose each other
-        # on the dome, so the coordinates should sum to zero
-        for i in range(len(obj) / 2):
-            diff = 0
-            for j in range(1, 4):
-                diff += actual[i][j] + actual[(len(obj) - 1) - i][j]
-            assert (abs(diff) < 0.00001), "ERROR in vertex position mapping between vertices: "+str(i)+", "+str((len(obj)-1)-i)+". Diff = "+str(diff)
-            # res = actual[i] + actual[(len(obj) - 1) - i]
-        return actual
 
-    return verify(apply_map(obj), obj)
 
 
 map_dome_to_obj = [

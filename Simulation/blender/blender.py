@@ -36,7 +36,7 @@ from math import radians, atan, sqrt, acos
 import os
 
 def displaceLight(lightList):
-    # lightList : [x, y, z, scale, intensity]
+    # lightList : [intensity, x, y, z]
 
     # set background light strength (ambient light)
     bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = 2
@@ -44,10 +44,10 @@ def displaceLight(lightList):
     for i, light in enumerate(lightList) :
         # make light data
         light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
-        light_data.spot_size = radians(80)
+        light_data.spot_size = radians(10)
         light_data.spot_blend = 0.15
         light_data.specular_factor = 1 #0.5 ?
-        light_data.energy = 100
+        light_data.energy = light[0]
         light_data.use_shadow = True
         
         # make light object
@@ -56,7 +56,7 @@ def displaceLight(lightList):
         bpy.context.collection.objects.link(light_object)
 
         #bpy.context.view_layer.objects.active = light_objects
-        scale = 5
+        scale = 3
         light_object.location = [scale * x for x in light[1:]]
         getRotation(light_object)
         # TODO :: setup more light properties

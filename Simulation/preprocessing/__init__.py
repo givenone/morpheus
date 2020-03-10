@@ -1,0 +1,1 @@
+from preprocessing.dome_obj_data import get_dome_vertices
