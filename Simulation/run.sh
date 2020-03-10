@@ -1,5 +1,6 @@
 OUT_DIR="./out"
 TARGET_OBJECT="./models/FACETS_OBJ.obj"
+
 #ANIM_FRAMES_OPTION="--render-anim"
 
 # Make this "true" when testing the scripts
@@ -7,6 +8,9 @@ TEST=false
 if ${TEST}; then
   RESOLUTION=10
 fi
+
+# Export path
+export PATH=$PATH:$1
 
 # Create the output directory
 mkdir -p ${OUT_DIR}

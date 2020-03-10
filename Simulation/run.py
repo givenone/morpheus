@@ -31,15 +31,15 @@ if __name__ == "__main__":
     #TODO
     vertices = preprocessing.get_dome_vertices()
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
-    cameras = [{'location': [0,-3,0]}]
+    cameras = [{'location': [0,-5,0]}]
 
     for light in lights :
         pattern_name = light[0]
         blender.displaceLight(light[1])
         blender.displaceObject(input_file_path)
         blender.displaceCamera(cameras)
-
-        blender.rendering.render(output_dir_path + "/" + pattern_name)
+        break
+        #blender.rendering.render(output_dir_path + "/" + pattern_name)
     
     #camera_object = bpy.data.objects["Camera"]
     #utils.set_output_properties(scene, resolution_percentage, output_file_path)

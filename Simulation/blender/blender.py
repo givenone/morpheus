@@ -44,9 +44,9 @@ def displaceLight(lightList):
     for i, light in enumerate(lightList) :
         # make light data
         light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
-        light_data.spot_size = radians(10)
+        light_data.spot_size = radians(5)
         light_data.spot_blend = 0.15
-        light_data.specular_factor = 1 #0.5 ?
+        light_data.specular_factor = 0.5 #0.5 ?
         light_data.energy = light[0]
         light_data.use_shadow = True
         
@@ -56,7 +56,7 @@ def displaceLight(lightList):
         bpy.context.collection.objects.link(light_object)
 
         #bpy.context.view_layer.objects.active = light_objects
-        scale = 3
+        scale = 5
         light_object.location = [scale * x for x in light[1:]]
         getRotation(light_object)
         # TODO :: setup more light properties
@@ -77,7 +77,9 @@ def displaceObject(file_path) :
     # file : obj path. 
     imported_object = bpy.ops.import_scene.obj(filepath=file_path)
     file_name = os.path.basename(file_path).split('.')[0]
-    bpy.data.objects[file_name].dimensions = (1, 1, 1) # scale dimensions (size of an object)
+
+    obj = bpy.data.objects[file_name]
+    obj.dimensions = (0.5, 0.5, 0.5) # scale dimensions (size of an object)
     
     #TODO :: shading, other properties for rendering
     return True
