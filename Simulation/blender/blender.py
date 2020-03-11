@@ -77,10 +77,10 @@ def displaceObject(file_path) :
     # file : obj path. 
     imported_object = bpy.ops.import_scene.obj(filepath=file_path)
     file_name = os.path.basename(file_path).split('.')[0]
-
-    obj = bpy.data.objects[file_name]
-    obj.dimensions = (0.5, 0.5, 0.5) # scale dimensions (size of an object)
     
+    obj = bpy.data.objects[file_name] #object name is descripted in .obj file "o" if not, same as file name.
+    obj.dimensions = (0.5, 0.5, 0.5) # scale dimensions (size of an object)
+    #TODO :: align at center
     #TODO :: shading, other properties for rendering
     return True
 
