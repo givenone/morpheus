@@ -29,8 +29,10 @@ if __name__ == "__main__":
     util.clean_objects()
 
     #TODO
-    vertices = preprocessing.get_dome_vertices()
+    frame = "models/dome/dome_c.obj"
+    vertices = preprocessing.read_vertices_objects(frame)
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
+    
     cameras = [{'location': [0,-5,0]}]
 
     for light in lights :
