@@ -2,10 +2,6 @@ import os,sys
 import numpy as np
 import logging
 
-from shape_validator import *
-from model_helpers import vector_maths
-from obj_cache_manager import CachedObjClass, CacheObjManager
-
 class ParseError(Exception): pass;
 class TestFailedError(Exception): pass;
 class FileNotFoundError(Exception): pass;
@@ -72,7 +68,7 @@ def get_all_object_triangles( filename, scale , translation=(0,0,0)):
                         r.append([])
         r = r[:len(r)-1]    # remove the final empty list.
 
-    checkShapeValidity( r )
+    #checkShapeValidity( r )
     return r
 
 def get_all_object_polyfaces( filename, scale, translation=(0,0,0) ):
@@ -129,13 +125,13 @@ def get_all_object_polyfaces( filename, scale, translation=(0,0,0) ):
             polys.append([])
             p, polys = _parse_face_to_collection(f, ind=p, coll=polys)
 
-    checkShapeValidity( polys )
+    #checkShapeValidity( polys )
     return polys
 
 def apply_scale( vertices, scale=1.0 ):
     """ Apply scaling to the each vertex.
     """
-    checkVerticesValidity( vertices )
+    #checkVerticesValidity( vertices )
     if type(scale) != float:
         raise ValueError
     
@@ -147,7 +143,7 @@ def apply_scale( vertices, scale=1.0 ):
 def apply_translate( triangles, translate_tris=(0,0,0) ):
     """ Apply a translation to each triangle's points.
     """
-    checkShapeValidity( triangles )
+    #checkShapeValidity( triangles )
     
     for i in range(len(triangles)):                 # each tri in triangles
         for j in range(len(triangles[i])):          # each point in a tri
@@ -156,49 +152,52 @@ def apply_translate( triangles, translate_tris=(0,0,0) ):
     
 def get_triangle_centers( triangles ):
     tris = []
-    for tri in triangles:
-        tris.append( vector_maths.find_center_of_triangle( tri ) )
+    #for tri in triangles:
+    #    tris.append( vector_maths.find_center_of_triangle( tri ) )
     return tris
 
 def read_vertices_objects(filename):
     object_vertices = []
-    if filename in CacheObjManager().cached_vertices.keys():
+    #if filename in CacheObjManager().cached_vertices.keys():
         # Return the already cached vertices.
-        object_vertices = CacheObjManager().cached_vertices.value(key=filename)
-    else:
+        #object_vertices = CacheObjManager().cached_vertices.value(key=filename)
+    if 1 : #else:
         # Attempt to load vertices from file and cache them:
+        
         logging.info("Attempt load of vertices from file path: "+str(filename))
         if os.path.exists(filename):
             prev_line = "#"
             with open(filename, 'rb') as f:
                 for line in f:
                     line        = line.strip()
-                    line        = list(line.split())                   # split to list
+                    line        = list(line.split())                   # split to list         
                     is_valid_data_block         = len(line) > 0
                     if is_valid_data_block:
-                        cmd      = line[0]
+                        cmd      = line[0].decode('ascii')
                         values   = line[1:]                           # get only values
-                        prev_cmd = prev_line[0] if len(prev_line) > 0 else "#"
-                        is_first_vertex         = (cmd == 'v' and prev_cmd != "v")
-                        is_subsequent_vertex    = (cmd == 'v' and prev_cmd == "v")
-                        is_final_vertex         = (cmd != 'v' and prev_cmd == "v")
-                        if is_first_vertex:
-                            object_vertices.append([])
-                        if is_first_vertex or is_subsequent_vertex:
-                            values   = [float(x) for x in values]   # cast from string to float
-                            object_vertices[len(object_vertices)-1].append( values )
+                        #prev_cmd = prev_line[0] if len(prev_line) > 0 else "#"
+                        #is_first_vertex         = (cmd == 'v' and prev_cmd != "v")
+                        #is_subsequent_vertex    = (cmd == 'v' and prev_cmd == "v")
+                        #is_final_vertex         = (cmd != 'v' and prev_cmd == "v")
+                        #if is_first_vertex:
+                        #    object_vertices.append([])
+                        #if is_first_vertex or is_subsequent_vertex:
+                        if cmd == 'v' :
+                            values   = [float(x.decode('ascii')) for x in values]   # cast from string to float
+                            values.insert(0, cmd)
+                            object_vertices.append(values)
                     prev_line = line
-            CacheObjManager().cached_vertices.set_once( key=filename, value=object_vertices)
+            #CacheObjManager().cached_vertices.set_once( key=filename, value=object_vertices)
         else:
             raise FileNotFoundError("Obj file not found: "+str(filename))
     return object_vertices
 
 def read_faces_objects( filename ):
     object_faces = []
-    if filename in CacheObjManager().cached_faces.keys():
+    #if filename in CacheObjManager().cached_faces.keys():
         # Return the already cached faces.
-        object_faces = CacheObjManager().cached_faces.value(key=filename)
-    else:
+        #object_faces = CacheObjManager().cached_faces.value(key=filename)
+    if 1 : #else:
         # Attempt to load faces from file and cache them:
         logging.info("Attempt load of faces from file path: "+str(filename))
         if os.path.exists(filename):
@@ -239,7 +238,7 @@ def read_faces_objects( filename ):
                         if is_final_face:
                             pass
                     prev_line = line
-            CacheObjManager().cached_faces.set_once( key=filename, value=object_faces)
+            #CacheObjManager().cached_faces.set_once( key=filename, value=object_faces)
         else:
             raise FileNotFoundError("Obj file not found: "+str(filename))
     return object_faces
@@ -272,17 +271,19 @@ def test(filename, expected={"v":0,"f":0,"tri":0}):
     
 if __name__ == "__main__":
     #house_plant = "../../models/house plant 2/house plant.obj"
-    plants3 = "../../models/Flower/plants3.obj"
-    dome    = "../../models/dome_c.obj"
-    wheat   = "../../models/wheat/wheat1.obj"
-    frame   = "../../models/frame/positions_diffuse.obj"
-    v,f = get_all_vertex_face_objects(frame)
+    #plants3 = "../../models/Flower/plants3.obj"
+    #dome    = "../../models/dome_c.obj"
+    #wheat   = "../../models/wheat/wheat1.obj"
+    #frame   = "../../models/frame/positions_diffuse.obj"
+    dome = "../models/dome/uv_8_12.obj"
+    #v,f = get_all_vertex_face_objects(dome)
+    v = read_vertices_objects(dome)
     print( v )
 #    if test(plants3, expected={"v":381,"f":381,"tri":12290}):
 #        print ("Passed:", plants3)
 #    if test(dome, expected={"v":1,"f":1,"tri":180}):
 #        print ("Passed:", dome)
-    if test(wheat, expected={"v":1,"f":2,"tri":11566}):
-        print ("Passed:", wheat)
+    #if test(wheat, expected={"v":1,"f":2,"tri":11566}):
+    #    print ("Passed:", wheat)
     
     
