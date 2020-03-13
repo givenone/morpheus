@@ -1,2 +1,3 @@
 from preprocessing.dome_obj_data import get_dome_vertices
 from preprocessing.obj_model_reader import read_vertices_objects
+from preprocessing.obj_model_reader import read_faces_objects

@@ -199,7 +199,7 @@ def read_faces_objects( filename ):
         #object_faces = CacheObjManager().cached_faces.value(key=filename)
     if 1 : #else:
         # Attempt to load faces from file and cache them:
-        logging.info("Attempt load of faces from file path: "+str(filename))
+        #logging.info("Attempt load of faces from file path: "+str(filename))
         if os.path.exists(filename):
             prev_line = "#"
             with open(filename, 'rb') as f:
@@ -207,36 +207,40 @@ def read_faces_objects( filename ):
                 for line in f:
                     count +=1
                     line = line.strip()
+                    line = list(line.split())
+                    #print(line)
                     is_valid_data_block         = len(line) > 0
                     if is_valid_data_block:
-                        cmd      = line[0]
-                        prev_cmd = prev_line[0] if len(prev_line) > 0 else "#"
-                        is_first_face         = (cmd == 'f' and prev_cmd != "f")
-                        is_subsequent_face    = (cmd == 'f' and prev_cmd == "f")
-                        is_final_face         = (cmd != 'f' and prev_cmd == "f")
-                        if is_first_face:
-                            object_faces.append([])
-                        if is_first_face or is_subsequent_face:
-                            line = line.replace("-","")             # remove negative index values.
-                            line = line.replace("-","")             # remove negative index values.
-                            values   = list(line.split())           # split to list, " " space-char separated.
-                            values   = values[1:]                   # get only values
-                            for x in values:
+                        cmd      = line[0].decode('ascii')
+                        values = line[1:]
+                        #prev_cmd = prev_line[0] if len(prev_line) > 0 else "#"
+                        #is_first_face         = (cmd == 'f' and prev_cmd != "f")
+                        #is_subsequent_face    = (cmd == 'f' and prev_cmd == "f")
+                        #is_final_face         = (cmd != 'f' and prev_cmd == "f")
+                        #if is_first_face:
+                            #object_faces.append([])
+                        if cmd == 'f' : #is_first_face or is_subsequent_face:
+                            #line = line.replace("-","")             # remove negative index values.
+                            #line = line.replace("-","")             # remove negative index values.
+                            #values   = list(line.split())           # split to list, " " space-char separated.
+                            #values   = values[1:]                   # get only values
+                            #for x in values:
                                 # OBJ Format does not enforce a single format for face definitions. Where 'a/b/c' exists, meaning below can be derived. Numbers indicate indexes.
                                 # Formatting note: f  -1 -2 -3          -- 'position vertex/texture coordinate/normal vertex' - negative vertex index, for no good reason (AFAIK!)
                                 # Formatting note: f  1//4 2//4 3//4    -- 'position vertex/texture coordinate/normal vertex' - Face of 1,2,3 vertices with normal-vertex 4.
                                 # Formatting note: f  1 2 3             -- 'position vertex/texture coordinate/normal vertex' - implied points of triangle.
                                 # Formatting note: f  1 2 3 4           -- 'position vertex/texture coordinate/normal vertex' - implied points of polygon.
-                                x = x.split("/")
-                                if len(x) < 1:
-                                    logging.warning("An .obj file face entry exists without a position-vertex point, expected format: 'position-vertex/texture-coordinate/normal-vertex'")
-                                    logging.warning("Line "+str(count)+":\n"+str(line))
-                                    raise ValueError
+                                #x = x.split("/")
+                                #if len(x) < 1:
+                                  #  logging.warning("An .obj file face entry exists without a position-vertex point, expected format: 'position-vertex/texture-coordinate/normal-vertex'")
+                                   # logging.warning("Line "+str(count)+":\n"+str(line))
+                                    #raise ValueError
                             # Get only the first 'position-vertex' index
-                            values   = [int(x.split("/")[0]) for x in values]     # cast from string to int (index)
-                            object_faces[len(object_faces)-1].append( values )
-                        if is_final_face:
-                            pass
+                            value   = [int(x.decode('ascii')) for x in values]     # cast from string to int (index)
+                            value.insert(0, cmd)
+                            object_faces.append( value )
+                        #if is_final_face:
+                        #    pass
                     prev_line = line
             #CacheObjManager().cached_faces.set_once( key=filename, value=object_faces)
         else:
@@ -276,9 +280,9 @@ if __name__ == "__main__":
     #wheat   = "../../models/wheat/wheat1.obj"
     #frame   = "../../models/frame/positions_diffuse.obj"
     dome = "../models/dome/uv_8_12.obj"
-    #v,f = get_all_vertex_face_objects(dome)
-    v = read_vertices_objects(dome)
-    print( v )
+    v,f = get_all_vertex_face_objects(dome)
+    #v = read_vertices_objects(dome)
+    print( v, f )
 #    if test(plants3, expected={"v":381,"f":381,"tri":12290}):
 #        print ("Passed:", plants3)
 #    if test(dome, expected={"v":1,"f":1,"tri":180}):

@@ -27,13 +27,15 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects()
-
+    util.setting()
     #TODO
-    frame = "models/dome/dome_c.obj"
+    frame = "models/dome/ico_3.obj"
     vertices = preprocessing.read_vertices_objects(frame)
+    faces = preprocessing.read_faces_objects(frame)
+    blender.displaceFrame(vertices,faces, 5)
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
     
-    cameras = [{'location': [0,-5,0]}]
+    cameras = [{'location': [4,0,0]}]
 
     for light in lights :
         pattern_name = light[0]
@@ -42,8 +44,4 @@ if __name__ == "__main__":
         blender.displaceCamera(cameras)
         break
         #blender.rendering.render(output_dir_path + "/" + pattern_name)
-    
-    #camera_object = bpy.data.objects["Camera"]
-    #utils.set_output_properties(scene, resolution_percentage, output_file_path)
-    #utils.set_cycles_renderer(scene, camera_object, num_samples)
-
+           
