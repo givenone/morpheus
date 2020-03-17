@@ -6,6 +6,7 @@ def setting(**kwargs) :
     bpy.context.scene.cycles.device = "GPU" # GPU support
     return
 
-def clean_objects() -> None:
+def clean_objects(ty="LIGHT", all=False) -> None:
     for item in bpy.data.objects:
-        bpy.data.objects.remove(item)
+        if all or item.type == ty :
+            bpy.data.objects.remove(item)

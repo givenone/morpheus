@@ -81,12 +81,26 @@ def displaceObject(file_path) :
     obj = bpy.data.objects[file_name] #object name is descripted in .obj file "o" if not, same as file name.
     
     #TODO :: align at center
+    obj.location = (0, 0, 0)
+
     (x,y,z) = obj.dimensions
     scale = sqrt(pow(x,2) + pow(y,2) + pow(z,2))
     scale = max(x, y, z)
     obj.dimensions = (x/scale * 2 , y/scale * 2, z/scale * 2) # scale dimensions (size of an object)
     #TODO :: shading, other properties for rendering
-    return True
+    
+
+def displaceBlenderObject(file_path, obj_name) :
+    bpy.ops.wm.append(filename = obj_name, directory = file_path)
+    obj = bpy.data.objects[obj_name]
+
+    #TODO :: align at center
+    obj.location = (0, 0, 0)
+    (x,y,z) = obj.dimensions
+    scale = sqrt(pow(x,2) + pow(y,2) + pow(z,2))
+    scale = max(x, y, z)
+    obj.dimensions = (x/scale * 2 , y/scale * 2, z/scale * 2) # scale dimensions (size of an object)
+
 
 def displaceFrame(vertices, edges, scale) :
     vert = []
