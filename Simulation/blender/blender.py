@@ -102,6 +102,7 @@ def displaceBlenderObject(file_path, obj_name) :
     obj.dimensions = (x/scale * 2 , y/scale * 2, z/scale * 2) # scale dimensions (size of an object)
 
 
+
 def displaceFrame(vertices, edges, scale) :
     vert = []
     for v in vertices :
@@ -158,7 +159,29 @@ def displaceFrame(vertices, edges, scale) :
     
  
 def displaceRoom(scale) :
-    return
+    bpy.ops.mesh.primitive_cube_add()
+    cube = bpy.context.selected_objects[0]
+
+    cube.dimensions = (scale, scale, scale)
+    name = "room"
+    bpy.data.materials.new(name)
+    bpy.data.materials[name].use_nodes = True
+    material = bpy.data.materials[name]
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+
+    output = nodes.new( type = 'ShaderNodeOutputMaterial' )
+    diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
+    
+    link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
+
+    x = nodes.get('Principled BSDF')
+    x.inputs['Base Color'].default_value = [0.004, 0.004, 0.004, 1]
+    x.inputs['Specular'].default_value = 0.01
+    x.inputs['Roughness'].default_value = 0.8
+    x.inputs['Metallic'].default_value = 0.1
+    x.inputs['Sheen'].default_value = 0.3
+    cube.active_material = bpy.data.materials[name]
 
 def getRotation(blender_object) :
     (x, y, z) = blender_object.location

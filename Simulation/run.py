@@ -34,6 +34,7 @@ if __name__ == "__main__":
     vertices = preprocessing.read_vertices_objects(frame)
     faces = preprocessing.read_faces_objects(frame)
     blender.displaceFrame(vertices,faces, 5)
+    blender.displaceRoom(20)
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
     print("Done preprocessing")
     cameras = [{'location': [0,-3,0]}]
