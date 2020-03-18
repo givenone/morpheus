@@ -39,16 +39,18 @@ def displaceLight(lightList):
     # lightList : [intensity, x, y, z]
 
     # set background light strength (ambient light)
-    bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = 2
+    bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = 0.01
 
     for i, light in enumerate(lightList) :
         # make light data
         light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
-        light_data.spot_size = radians(45)
-        light_data.spot_blend = 0.7
+        light_data.spot_size = radians(30)
+        light_data.spot_blend = 0.3
         light_data.specular_factor = 0.5 #0.5 ?
         light_data.energy = light[0]
         light_data.use_shadow = True
+        light_data.use_custom_distance = True
+        light_data.cutoff_distance = 100
         
         # make light object
         light_object = bpy.data.objects.new(name="light_{}".format(i), object_data = light_data)
@@ -146,16 +148,16 @@ def displaceFrame(vertices, edges, scale) :
     nodes = material.node_tree.nodes
     links = material.node_tree.links
 
-    output = nodes.new( type = 'ShaderNodeOutputMaterial' )
-    diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
+    #output = nodes.new( type = 'ShaderNodeOutputMaterial' )
+    #diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
     
-    link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
+    #link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
 
     x = nodes.get('Principled BSDF')
-    x.inputs['Base Color'].default_value = [0.019, 0.019, 0.019, 1]
+    x.inputs['Base Color'].default_value = [0.1, 0.1, 0.1, 1]
     x.inputs['Specular'].default_value = 0.3
     x.inputs['Roughness'].default_value = 0.3
-    x.inputs['Metallic'].default_value = 0.6
+    x.inputs['Metallic'].default_value = 0.99
     bpy.data.objects["Frame"].active_material = bpy.data.materials[name]
     
  
@@ -171,10 +173,10 @@ def displaceRoom(scale) :
     nodes = material.node_tree.nodes
     links = material.node_tree.links
 
-    output = nodes.new( type = 'ShaderNodeOutputMaterial' )
-    diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
+    #output = nodes.new( type = 'ShaderNodeOutputMaterial' )
+    #diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
     
-    link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
+    #link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
 
     x = nodes.get('Principled BSDF')
     x.inputs['Base Color'].default_value = [0.004, 0.004, 0.004, 1]

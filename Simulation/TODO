@@ -5,3 +5,5 @@
 - specular/diffuse(subsurface scattering) separation
 - animation (not necessary because we just obtain rendered pictures, but for synchronization purposes using animation would be good.)
 - various rendering engine
+
+- light source visibility
