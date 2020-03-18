@@ -69,6 +69,7 @@ def displaceCamera(cameraList) :
     for i, camera in enumerate(cameraList) :
         bpy.ops.object.camera_add(location=camera['location'])
         curr = bpy.context.object
+        curr.data.sensor_width = 50
         getRotation(curr)
         curr.name = "camera"+str(i)
 
@@ -151,10 +152,10 @@ def displaceFrame(vertices, edges, scale) :
     link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
 
     x = nodes.get('Principled BSDF')
-    x.inputs['Base Color'].default_value = [0.19, 0.19, 0.19, 1]
+    x.inputs['Base Color'].default_value = [0.019, 0.019, 0.019, 1]
     x.inputs['Specular'].default_value = 0.3
     x.inputs['Roughness'].default_value = 0.3
-    x.inputs['Metallic'].default_value = 0.3
+    x.inputs['Metallic'].default_value = 0.6
     bpy.data.objects["Frame"].active_material = bpy.data.materials[name]
     
  

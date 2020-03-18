@@ -30,14 +30,14 @@ if __name__ == "__main__":
     util.clean_objects(all = True)
     #util.setting()
     #TODO
-    frame = "models/dome/ico_3.obj"
+    frame = "models\\dome\\ico_3.obj"
     vertices = preprocessing.read_vertices_objects(frame)
     faces = preprocessing.read_faces_objects(frame)
     blender.displaceFrame(vertices,faces, 5)
     blender.displaceRoom(20)
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
     print("Done preprocessing")
-    cameras = [{'location': [0,-3,0]}]
+    cameras = [{'location': [0,-4.8,0]}]
 
     for light in lights :
         util.clean_objects() # Remove all lights
@@ -46,8 +46,7 @@ if __name__ == "__main__":
         blender.displaceLight(light[1])
         #blender.displaceObject(input_file_path)
         print("Light Displacement Done")
-        blender.displaceBlenderObject("/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object", "Emily_2_1")
+        blender.displaceBlenderObject("C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\emily.blend\\Object", "Emily_2_1")
         blender.displaceCamera(cameras)
         break
-        #blender.rendering.render(output_dir_path + "/" + pattern_name)
-           
+        #blender.rende1q2wert67y0p-[]74,.
