@@ -28,7 +28,7 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects(all = True)
-    util.setting()
+    #util.setting()
     #TODO
     frame = "models\\dome\\ico_3.obj"
     vertices = preprocessing.read_vertices_objects(frame)
@@ -52,6 +52,6 @@ if __name__ == "__main__":
         blender.displaceLight(light[1])
         #blender.displaceObject(input_file_path)
         print("Light Displacement Done")
-        blender.rendering.render("C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output"+"\\cycle_test_revised_3", pattern_name)
+        blender.rendering.render("C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output"+"\\cycle_test_revised_5_hdr", pattern_name)
         print(pattern_name, "rendering done")      
         #blender.rende1q2wert67y0p-[]74,.
