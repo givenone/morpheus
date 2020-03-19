@@ -44,11 +44,7 @@ if __name__ == "__main__":
 
     print("Done preprocessing")
     
-    for light in lights :
-
-
-
-        
+    for light in lights :        
         util.clean_objects() # Remove all lights
         pattern_name = light[0]
         #if pattern_name is not 'b' : 
@@ -56,6 +52,6 @@ if __name__ == "__main__":
         blender.displaceLight(light[1])
         #blender.displaceObject(input_file_path)
         print("Light Displacement Done")
-        blender.rendering.render(".\\output" + "\\cycle_test_branched", pattern_name)
+        blender.rendering.render("C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output"+"\\cycle_test_revised_3", pattern_name)
         print(pattern_name, "rendering done")      
         #blender.rende1q2wert67y0p-[]74,.
