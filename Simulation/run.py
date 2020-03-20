@@ -1,4 +1,4 @@
-# blender --background --python 01_cube.py --render-frame 1 -- </path/to/output/dir> </path/to/input/object>
+#       der-frame 1 -- </path/to/output/dir> </path/to/input/object>
 # "/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
 import bpy
 import os, sys
