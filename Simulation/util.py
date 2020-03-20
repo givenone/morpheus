@@ -4,6 +4,9 @@ def setting(**kwargs) :
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES' # rendering engine
     bpy.context.scene.cycles.device = "GPU" # GPU support
+    bpy.context.scene.cycles.progressive = "BRANCHED_PATH"
+    bpy.context.scene.cycles.aa_samples = 300
+    bpy.context.scene.cycles.max_bounces = 1
     return
 
 def clean_objects(ty="LIGHT", all=False) -> None:
