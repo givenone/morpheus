@@ -59,22 +59,42 @@ def calculateSpecularAlbedo(path, form) :
 
     names = [prefix + name + suffix for name in names]
 
-    bgr_images = []
-    h, s, v  = []
+    images = []
+    H, S, V  = [], [], []
 
     for i in names:
         img = cv.imread(i, 3)
         arr = array(img)
-        bgr_images.append(arr.astype('float64'))
+        images.append(arr.astype('float64'))
         
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
-        h, s, v = cv2.split(hsv_image)
-        arr = array(hsv_img)
-        hsv_images.append(arr.astype('float64'))
+        h, s, v = cv.split(hsv_img)
+        
+        arr = array(h)
+        H.append(arr.astype('float64'))
+        arr = array(s)
+        S.append(arr.astype('float64'))
+        arr = array(v)
+        V.append(arr.astype('float64'))
 
-    height, width, _ = hsv_images[0].shape
+
+    height, width, _ = images[0].shape
     
     specular_albedo = [None,None,None]
+
+    for i in range(3) : 
+        h_g, s_g, v_g, h_c, s_c, v_c = H[i], S[i], V[i], H[i+1], S[i+1], V[i+1] 
+        b,g,r = cv.split(images[i])
+        b_c, g_c,r_c = cv.split(images[i+1])
+        c_g, c_c = np.maximum(np.maximum(r, g), b), np.maximum(np.maximum(r_c, g_c), b_c)
+
+        t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
+        spec = np.subtract(v_g, t)
+        t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
+        spec_c = np.subtract(v_c, t)
+
+        specular_albedo[i] = np.maximum(spec, spec_c)
+    '''
     for i in range(3) :
         specular_albedo[i]= np.zeros((height, width))
         a, a_c = i, i+1
@@ -92,13 +112,16 @@ def calculateSpecularAlbedo(path, form) :
                 delta_c = value_c - chroma_c/saturation_g if saturation_g != 0 else 0
 
                 specular_albedo[i][h][w] = max(delta, delta_c)
+    '''
 
-    np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-    np.subtract()
+    #for h in range(height):
+    #    normalize(specular_albedo[0], copy=False)
+        
+    # only for visualising
+    specular_albedo[0] *= 100
+    im = Image.fromarray( (specular_albedo[0]).astype('uint8'), 'L')
 
-    im = Image.fromarray(specular_albedo[0].astype('uint8'), 'L')
-
-    plt.imshow(im)
+    plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     plt.show()  
     return    
 
@@ -133,7 +156,7 @@ def calculateMixedNormals(path, form):
         encodedImage.append(np.empty_like(N_x).astype('float64'))
         encodedImage[i][..., 0] = N_x[..., i]
         encodedImage[i][..., 1] = N_y[..., i]
-        encodedImage[i][..., 2] = N_z[..., i] #blue normal
+        encodedImage[i][..., 2] = N_z[..., i] #red normal
 
         for h in range(height):
             normalize(encodedImage[i][h], copy=False)
@@ -193,7 +216,7 @@ def calculateDiffuseNormals(card):
 
 if __name__ == "__main__":
 
-    calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
+    calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
     #calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
     #calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
     #with concurrent.futures.ProcessPoolExecutor() as executor:
