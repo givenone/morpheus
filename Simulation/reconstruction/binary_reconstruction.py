@@ -46,9 +46,14 @@ def calculateMixedAlbedo(path, form) :
     plt.show()  
     return
 
-def calculateDiffuseAlbedo() :
+def calculateDiffuseAlbedo(mixed, specular) :
+    
+    out_img = np.zeros_like(mixed)
+    out_img[0] = np.subtract(mixed[0], specular)
+    out_img[1] = np.subtract(mixed[1], specular)
+    out_img[2] = np.subtract(mixed[2], specular)
 
-    return
+    return out_img
 
 def calculateSpecularAlbedo(path, form) :
 
