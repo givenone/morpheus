@@ -108,3 +108,5 @@ reflected RGB color of the surface is more saturated in the darker
 (pure diffuse) lighting condition while exhibiting reduced satura-
 tion under the brighter (diffuse + specular) lighting condition due
 to mixing with some white reflection.
+
+- Diffuse Normal : uv space normal -> consistency between dielectic normals => diffuse normal
