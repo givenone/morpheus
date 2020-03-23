@@ -7,17 +7,63 @@ import matplotlib.pyplot as plt
 
 import concurrent.futures
 
+
+def createYRotationMatric(theta):
+    cos, sin = np.cos(theta), np.sin(theta)
+    return np.array([[cos, 0, sin], [0, 1, 0], [-sin, 0, cos]])
+
+def get_rot_mat(rot_v, unit=None):
+    '''
+    takes a vector and returns the rotation matrix required to align the unit vector(2nd arg) to it
+    '''
+    if unit is None:
+        unit = [1.0, 0.0, 0.0]
+
+    rot_v = rot_v/np.linalg.norm(rot_v)
+    uvw = np.cross(rot_v, unit) #axis of rotation
+
+    rcos = np.dot(rot_v, unit) #cos by dot product
+    rsin = np.linalg.norm(uvw) #sin by magnitude of cross product
+
+    #normalize and unpack axis
+    if not np.isclose(rsin, 0):
+        uvw = uvw/rsin
+    u, v, w = uvw
+
+    # Compute rotation matrix
+    # Artsiom: I haven't checked that this is correct
+    R = (
+        rcos * np.eye(3) +
+        rsin * np.array([
+            [ 0, -w,  v],
+            [ w,  0, -u],
+            [-v,  u,  0]
+        ]) +
+        (1.0 - rcos) * uvw[:,None] * uvw[None,:]
+    )
+
+    return R
+
+    
 def calculateMixedAlbedo(path, form) :
 
     name = path + "w" + form
     img = cv.imread(name) #BGR
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
-    #print(img.shape, img[1000, 2080])
     blue = img[..., 0]
     green = img[..., 1]
     red = img[..., 2]
 
+    b = Image.fromarray(blue.astype('uint8'), 'L')
+    g = Image.fromarray(blue.astype('uint8'), 'L')
+    r = Image.fromarray(blue.astype('uint8'), 'L')
+    b.save("mixed_albedo_blue.jpg")
+    g.save("mixed_albedo_green.jpg")
+    r.save("mixed_albedo_red.jpg")
+    #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
+    #plt.show()
+    """
     #plt.imshow(rgb_img, interpolation='bicubic')
 
     fig = plt.figure() 
@@ -25,25 +71,28 @@ def calculateMixedAlbedo(path, form) :
     out_img[:,:,0] = red
     out_img[:,:,1] = red
     out_img[:,:,2] = red
-    fig.add_subplot(1,3,1)
-    plt.imshow(out_img)
+
+    #fig.add_subplot(1,3,1)
+    #plt.imshow(out_img)
 
     out_img_1 = np.zeros_like(img)
     out_img_1[:,:,0] = green
     out_img_1[:,:,1] = green
     out_img_1[:,:,2] = green
-    fig.add_subplot(1,3,2)
-    plt.imshow(out_img_1)
+
+    #fig.add_subplot(1,3,2)
+    #plt.imshow(out_img_1)
 
     out_img_2 = np.zeros_like(img)
     out_img_2[:,:,0] = blue
     out_img_2[:,:,1] = blue
     out_img_2[:,:,2] = blue
     
-    fig.add_subplot(1,3,3)
-    plt.imshow(out_img_2)
+    #fig.add_subplot(1,3,3)
+    #plt.imshow(out_img_2)
 
-    plt.show()  
+    plt.show() 
+    """ 
     return
 
 def calculateDiffuseAlbedo(mixed, specular) :
@@ -88,9 +137,9 @@ def calculateSpecularAlbedo(path, form) :
     specular_albedo = [None,None,None]
 
     for i in range(3) : 
-        h_g, s_g, v_g, h_c, s_c, v_c = H[i], S[i], V[i], H[i+1], S[i+1], V[i+1] 
-        b,g,r = cv.split(images[i])
-        b_c, g_c,r_c = cv.split(images[i+1])
+        h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i], V[2*i], H[2*i+1], S[2*i+1], V[2*i+1] 
+        b,g,r = cv.split(images[2*i])
+        b_c, g_c,r_c = cv.split(images[2*i+1])
         c_g, c_c = np.maximum(np.maximum(r, g), b), np.maximum(np.maximum(r_c, g_c), b_c)
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
@@ -123,11 +172,11 @@ def calculateSpecularAlbedo(path, form) :
     #    normalize(specular_albedo[0], copy=False)
         
     # only for visualising
-    specular_albedo[0] *= 100
+    specular_albedo[0] *= 30
     im = Image.fromarray( (specular_albedo[0]).astype('uint8'), 'L')
-
-    plt.imshow(im, cmap='gray', vmin=0, vmax=255)
-    plt.show()  
+    im.save("specular_albedo.jpg")
+    #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
+    #plt.show()  
     return    
 
 
@@ -171,58 +220,75 @@ def calculateMixedNormals(path, form):
         encodedImage[i] *= 255.0
 
         im = Image.fromarray(encodedImage[i].astype('uint8'))
-    #im.save("mixed.jpg")
-        fig.add_subplot(1,3,i+1)
-        plt.imshow(im)
+        
+        im.save("mixed_normal{}.jpg".format(i))
+        
+        #fig.add_subplot(1,3,i+1)
+        #plt.imshow(im)
     plt.show()
     
 
 
-def calculateDiffuseNormals(card):
-
-    # for card in range(3, 4):
-
+def calculateDiffuseNormals(path, form):
     images = []
 
-    prefix = "./card{}/".format(card)
+    prefix = path
+    suffix = form
 
-    names = [prefix + str(name) + ".TIF" for name in range(3, 16, 2)]
-    names.remove(prefix + "11.TIF")
+    names = ["x", "x_c", "y", "y_c", "z", "z_c", "b", "w"]
 
-    # print(names)
+    names = [prefix + name + suffix for name in names]
 
     for i in names:
-        img = Image.open(i)
+        img = cv.imread(i, 3)
         arr = array(img)
         images.append(arr.astype('float64'))
 
     height, width, _ = images[0].shape
 
-    N_x = (images[0] - images[1]) / 255
-    N_y = (images[2] - images[3]) / 255
-    N_z = (images[4] - images[5]) / 255
+    rot_vec = [1,1,1] # specular : white component
+    R=get_rot_mat(rot_vec,unit=None)
 
-    encodedImage = np.empty_like(N_x).astype('float64')
+    N = []
+    for i in range(3) :
+        I_suv_g=np.zeros(images[i].shape)
+        I_suv_c=np.zeros(images[i].shape)
+        # m, n, 3 x 3, 3 -> m, n, 3
+        I_suv_g = np.einsum('mnr,rx->mnx', images[i], R)
+        I_suv_c = np.einsum('mnr,rx->mnx', images[i+1], R)
+        print(I_suv_g.shape)
+        # pure diffuse component
+        G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
+        G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
+        print(G - G_C)
+        N.append(G-G_C)
+        
+        
+    # for visualising
 
-    encodedImage[..., 0] = N_x[..., 0]
-    encodedImage[..., 1] = N_y[..., 0]
-    encodedImage[..., 2] = N_z[..., 0]
+    encodedImage = np.empty_like(images[0]).astype('float64')
+    encodedImage[..., 0] = N[0] # X
+    encodedImage[..., 1] = N[1] # Y
+    encodedImage[..., 2] = N[2] # Z 
 
     for h in range(height):
         normalize(encodedImage[h], copy=False)
-
+        
     # only for visualising
     encodedImage = (encodedImage + 1.0) / 2.0
     encodedImage *= 255.0
 
     im = Image.fromarray(encodedImage.astype('uint8'))
-    im.save("diffuseNormal{}.png".format(card))
+    im.save("diffuse_normal.jpg")
+    #plt.imshow(im)
+    #plt.show()
 
 
 if __name__ == "__main__":
 
+    calculateDiffuseNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
     calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
-    #calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
-    #calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
+    calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
+    calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))

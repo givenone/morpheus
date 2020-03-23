@@ -30,5 +30,10 @@ adding the high-pass to the low-frequency diffuse normal ~ N u,v ob-
 tained using color-space separation, and finally re-normalizing the
 resultant normal map.
 
+- rotation matrix for suv separation : [link](https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d) [github](https://gist.github.com/asanakoy/c82420afdab4d5eaa78c9f9481e462e1#file-rgb_2_suv-py-L53)
+
 - TODO :: Spectral Multiplexing (not considered yet)
 
+- TODO :: Optimization of the code
+
+- using tensordot, einsum for rotation of all image efficiently
