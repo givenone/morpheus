@@ -254,8 +254,8 @@ def calculateDiffuseNormals(path, form):
         I_suv_g=np.zeros(images[i].shape)
         I_suv_c=np.zeros(images[i].shape)
         # m, n, 3 x 3, 3 -> m, n, 3
-        I_suv_g = np.einsum('mnr,rx->mnx', images[i], R)
-        I_suv_c = np.einsum('mnr,rx->mnx', images[i+1], R)
+        I_suv_g = np.einsum('mnr,rx->mnx', images[2*i], R)
+        I_suv_c = np.einsum('mnr,rx->mnx', images[2*i+1], R)
         print(I_suv_g.shape)
         # pure diffuse component
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
@@ -287,8 +287,8 @@ def calculateDiffuseNormals(path, form):
 if __name__ == "__main__":
 
     calculateDiffuseNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
-    calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
-    calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
-    calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
+    #calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
+    #calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
+    #calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))
