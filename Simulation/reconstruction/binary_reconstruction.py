@@ -48,7 +48,7 @@ def get_rot_mat(rot_v, unit=None):
 def calculateMixedAlbedo(path, form) :
 
     name = path + "w" + form
-    img = cv.imread(name) #BGR
+    img = cv.imread(name, 3) #BGR
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
     blue = img[..., 0]
@@ -62,7 +62,7 @@ def calculateMixedAlbedo(path, form) :
     b.save("mixed_albedo_blue.jpg")
     g.save("mixed_albedo_green.jpg")
     r.save("mixed_albedo_red.jpg")
-
+    return img #BGR
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     #plt.show()
     """
@@ -95,14 +95,14 @@ def calculateMixedAlbedo(path, form) :
 
     plt.show() 
     """ 
-    return
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
+    print(mixed.shape)
     out_img = np.zeros_like(mixed)
-    out_img[0] = np.subtract(mixed[0], specular)
-    out_img[1] = np.subtract(mixed[1], specular)
-    out_img[2] = np.subtract(mixed[2], specular)
+    out_img[...,0] = np.subtract(mixed[...,0], specular)
+    out_img[...,1] = np.subtract(mixed[...,1], specular)
+    out_img[...,2] = np.subtract(mixed[...,2], specular)
 
     return out_img
 
@@ -196,7 +196,6 @@ def calculateMixedNormals(path, form):
 
     for i in names:
         img = cv.imread(i, 3)
-        print(img)
         arr = array(img)
         images.append(arr.astype('float64'))
 
@@ -207,8 +206,12 @@ def calculateMixedNormals(path, form):
     N_z = (images[4] - images[5])# / 255
 
 
-    encodedImage = []
+    encodedImage = np.empty_like(N_x).astype('float64')
+    encodedImage[...,0] = N_x[..., 0]
+    encodedImage[...,1] = N_y[..., 0]
+    encodedImage[...,2] = N_z[..., 0]
 
+    """
     fig = plt.figure() 
     for i in range(3) :
         encodedImage.append(np.empty_like(N_x).astype('float64'))
@@ -216,7 +219,7 @@ def calculateMixedNormals(path, form):
         encodedImage[i][..., 1] = N_y[..., i]
         encodedImage[i][..., 2] = N_z[..., i] #red normal
 
-        """ only for visualizing
+        #only for visualizing
         for h in range(height):
             normalize(encodedImage[i][h], copy=False)
             
@@ -230,7 +233,7 @@ def calculateMixedNormals(path, form):
         
         #fig.add_subplot(1,3,i+1)
         #plt.imshow(im)
-        """
+    """
     return encodedImage
     #plt.show()
     
@@ -267,7 +270,7 @@ def calculateDiffuseNormals(path, form):
         # pure diffuse component
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
-        print(G - G_C)
+        #print(G - G_C)
         N.append(G-G_C)
         
         
@@ -296,7 +299,7 @@ def calculateDiffuseNormals(path, form):
 
 def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
     
-    alpha = np.divide(diffuse_albedo[0], mixed_albedo[0], out=np.zeros_like(mixed_albedo[0]), where=mixed_albedo[0]!=0)
+    alpha = np.divide(diffuse_albedo[...,0], mixed_albedo[...,0], out=np.zeros_like(mixed_albedo[...,0]), where=mixed_albedo[...,0]!=0)
 
     # TODO :: Can be done more efficiently? alpha * normal (3 channel)
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
@@ -308,10 +311,17 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     alphadiffuse[..., 2] = d_z
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
+    print(Reflection.shape, alphadiffuse.shape, mixed_normal.shape)
     height, width, _ = Reflection.shape
     for h in range(height):
         normalize(Reflection[h], copy=False)
+    # Just for visualising
 
+    Reflection = (Reflection + 1) / 2
+    Reflection *= 255
+    im = Image.fromarray(Reflection.astype('uint8'))
+    plt.imshow(im)
+    plt.show()
     # TODO :: what is viewing direction ?
     return
 
@@ -326,6 +336,6 @@ if __name__ == "__main__":
 
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form)
-
+    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, (0,1,0))
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))
