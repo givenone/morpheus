@@ -58,9 +58,11 @@ def calculateMixedAlbedo(path, form) :
     b = Image.fromarray(blue.astype('uint8'), 'L')
     g = Image.fromarray(blue.astype('uint8'), 'L')
     r = Image.fromarray(blue.astype('uint8'), 'L')
+    
     b.save("mixed_albedo_blue.jpg")
     g.save("mixed_albedo_green.jpg")
     r.save("mixed_albedo_red.jpg")
+
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     #plt.show()
     """
@@ -138,17 +140,25 @@ def calculateSpecularAlbedo(path, form) :
 
     for i in range(3) : 
         h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i], V[2*i], H[2*i+1], S[2*i+1], V[2*i+1] 
+        
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
-        c_g, c_c = np.maximum(np.maximum(r, g), b), np.maximum(np.maximum(r_c, g_c), b_c)
-
+        c_g= np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
+        c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
+        
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
         spec = np.subtract(v_g, t)
+
         t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
         spec_c = np.subtract(v_c, t)
-
+        
         specular_albedo[i] = np.maximum(spec, spec_c)
-    '''
+
+    specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
+
+
+    ''' This is non-using np-optimization version
+
     for i in range(3) :
         specular_albedo[i]= np.zeros((height, width))
         a, a_c = i, i+1
@@ -168,13 +178,7 @@ def calculateSpecularAlbedo(path, form) :
                 specular_albedo[i][h][w] = max(delta, delta_c)
     '''
 
-    #for h in range(height):
-    #    normalize(specular_albedo[0], copy=False)
-        
-    # only for visualising
-    specular_albedo[0] *= 30
-    im = Image.fromarray( (specular_albedo[0]).astype('uint8'), 'L')
-    im.save("specular_albedo.jpg")
+    print(specular_median)
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     #plt.show()  
     return    
@@ -286,9 +290,15 @@ def calculateDiffuseNormals(path, form):
 
 if __name__ == "__main__":
 
-    calculateDiffuseNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
-    #calculateSpecularAlbedo("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
-    #calculateMixedAlbedo("/home/givenone/Desktop/cycle_test_revised_5/", ".png")
-    #calculateMixedNormals("/home/givenone/Desktop/cycle_test_revised_6_hdr/", ".hdr")
+    path = "/home/givenone/Desktop/cycle_test_revised_6_hdr/"
+    form = ".hdr"
+
+    specular_albedo = calculateSpecularAlbedo(path, form)
+    mixed_albedo = calculateMixedAlbedo(path, form)
+    diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
+
+    mixed_normal = calculateMixedNormals(path, form)
+    diffuse_normal = calculateDiffuseNormals(path, form)
+
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))
