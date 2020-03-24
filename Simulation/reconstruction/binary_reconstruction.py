@@ -178,10 +178,10 @@ def calculateSpecularAlbedo(path, form) :
                 specular_albedo[i][h][w] = max(delta, delta_c)
     '''
 
-    print(specular_median)
+    #print(specular_median)
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     #plt.show()  
-    return    
+    return specular_median   
 
 
 def calculateMixedNormals(path, form):
@@ -216,6 +216,7 @@ def calculateMixedNormals(path, form):
         encodedImage[i][..., 1] = N_y[..., i]
         encodedImage[i][..., 2] = N_z[..., i] #red normal
 
+        """ only for visualizing
         for h in range(height):
             normalize(encodedImage[i][h], copy=False)
             
@@ -229,7 +230,9 @@ def calculateMixedNormals(path, form):
         
         #fig.add_subplot(1,3,i+1)
         #plt.imshow(im)
-    plt.show()
+        """
+    return encodedImage
+    #plt.show()
     
 
 
@@ -275,10 +278,13 @@ def calculateDiffuseNormals(path, form):
     encodedImage[..., 1] = N[1] # Y
     encodedImage[..., 2] = N[2] # Z 
 
+    return encodedImage
+
+
+    # only for visualising
     for h in range(height):
         normalize(encodedImage[h], copy=False)
         
-    # only for visualising
     encodedImage = (encodedImage + 1.0) / 2.0
     encodedImage *= 255.0
 
@@ -286,7 +292,28 @@ def calculateDiffuseNormals(path, form):
     im.save("diffuse_normal.jpg")
     #plt.imshow(im)
     #plt.show()
+    
 
+def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
+    
+    alpha = np.divide(diffuse_albedo[0], mixed_albedo[0], out=np.zeros_like(mixed_albedo[0]), where=mixed_albedo[0]!=0)
+
+    # TODO :: Can be done more efficiently? alpha * normal (3 channel)
+    d_x = np.multiply(diffuse_normal[..., 0], alpha)
+    d_y = np.multiply(diffuse_normal[..., 1], alpha)
+    d_z = np.multiply(diffuse_normal[..., 2], alpha)
+    alphadiffuse = np.empty_like(diffuse_normal).astype('float64')
+    alphadiffuse[..., 0] = d_x
+    alphadiffuse[..., 1] = d_y
+    alphadiffuse[..., 2] = d_z
+
+    Reflection = np.subtract(mixed_normal, alphadiffuse)
+    height, width, _ = Reflection.shape
+    for h in range(height):
+        normalize(Reflection[h], copy=False)
+
+    # TODO :: what is viewing direction ?
+    return
 
 if __name__ == "__main__":
 

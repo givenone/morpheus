@@ -12,3 +12,5 @@ It consists of 3 parts.
 
 - Need to implement command line program (using package management,... to automatically run all parts)
 - Testing for various lighting condition
+
+- making New Image for scaled face. & format also png & hdr.
