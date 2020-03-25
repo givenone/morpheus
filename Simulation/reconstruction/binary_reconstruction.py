@@ -338,12 +338,15 @@ def HPF(image) :
     kernel = np.array([[-1, -1, -1],
                         [-1,  8, -1],
                          [-1, -1, -1]])
+    
     kernel = np.array([[-1, -1, -1, -1, -1],
                    [-1,  1,  2,  1, -1],
                    [-1,  2,  4,  2, -1],
                    [-1,  1,  2,  1, -1],
                    [-1, -1, -1, -1, -1]])
+    
     dst = cv.filter2D(image, -1, kernel)
+    
     im = Image.fromarray(dst.astype('uint8'))
     im.save("specular_normal_filtered.jpg")
     plt.imshow(im)

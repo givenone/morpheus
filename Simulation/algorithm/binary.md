@@ -110,3 +110,10 @@ tion under the brighter (diffuse + specular) lighting condition due
 to mixing with some white reflection.
 
 - Diffuse Normal : uv space normal -> consistency between dielectic normals => diffuse normal
+
+- The
+normalized halfway vector between  r and  v corresponds to the specular normal direction
+
+- diffuse normal 을 diffuse albedo based modulation ?
+
+- high pass filter to specular normal
