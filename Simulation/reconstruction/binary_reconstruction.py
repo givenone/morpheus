@@ -311,17 +311,32 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     alphadiffuse[..., 2] = d_z
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
-    print(Reflection.shape, alphadiffuse.shape, mixed_normal.shape)
     height, width, _ = Reflection.shape
+    viewing_direction = np.array([[(0, -1, 0 ) for i in range(width)] for j in range(height)])
+    print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
         normalize(Reflection[h], copy=False)
-    # Just for visualising
+    #np.savetxt("specular_normal.txt", np.reshape(Reflection, (-1,3)))
+    
+    normal = np.add(viewing_direction, Reflection)
+    for h in range(height):
+        normalize(normal[h], copy=False)
+    print(normal[100][100])
+    normal = (normal + 1.0) / 2.0
+    print(normal[100][100])
+    normal *= 255.0
+    im = Image.fromarray(normal.astype('uint8'))
 
+    """       
+    # Just for visualising
     Reflection = (Reflection + 1) / 2
     Reflection *= 255
     im = Image.fromarray(Reflection.astype('uint8'))
+    im.save("specular_normal.jpg")
+    """
     plt.imshow(im)
     plt.show()
+    
     # TODO :: what is viewing direction ?
     return
 
