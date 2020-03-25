@@ -207,7 +207,7 @@ def calculateMixedNormals(path, form):
 
 
     encodedImage = np.empty_like(N_x).astype('float64')
-    encodedImage[...,0] = N_x[..., 0]
+    encodedImage[...,0] = N_x[..., 0] #Mixed Normal -> blue component
     encodedImage[...,1] = N_y[..., 0]
     encodedImage[...,2] = N_z[..., 0]
 
@@ -239,7 +239,7 @@ def calculateMixedNormals(path, form):
     
 
 
-def calculateDiffuseNormals(path, form):
+def calculateDiffuseNormals(path, form, diffuse_albedo):
     images = []
 
     prefix = path
@@ -279,8 +279,10 @@ def calculateDiffuseNormals(path, form):
     encodedImage = np.empty_like(images[0]).astype('float64')
     encodedImage[..., 0] = N[0] # X
     encodedImage[..., 1] = N[1] # Y
-    encodedImage[..., 2] = N[2] # Z 
-
+    encodedImage[..., 2] = N[2] # Z
+    for h in range(height):
+        normalize(encodedImage[h], copy=False)  #normalizing
+    #modulation with diffuse albedo    
     return encodedImage
 
 
@@ -312,7 +314,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
     height, width, _ = Reflection.shape
-    viewing_direction = np.array([[(0, -1, 0 ) for i in range(width)] for j in range(height)])
+    viewing_direction = np.array([[(0, -1, 0 ) for i in range(width)] for j in range(height)]) #needs geometry.
     print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
         normalize(Reflection[h], copy=False)
@@ -350,7 +352,7 @@ if __name__ == "__main__":
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
     mixed_normal = calculateMixedNormals(path, form)
-    diffuse_normal = calculateDiffuseNormals(path, form)
+    diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
     specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, (0,1,0))
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))
