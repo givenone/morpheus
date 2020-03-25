@@ -270,7 +270,6 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
         # pure diffuse component
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
-        #print(G - G_C)
         N.append(G-G_C)
         
         
@@ -314,7 +313,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
     height, width, _ = Reflection.shape
-    viewing_direction = np.array([[(0, -1, 0 ) for i in range(width)] for j in range(height)]) #needs geometry.
+    viewing_direction = np.array([[( (i-width/2)/width, -1, (j-height/2)/height ) for i in range(width)] for j in range(height)]) #needs geometry.
     print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
         normalize(Reflection[h], copy=False)
@@ -323,24 +322,32 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     normal = np.add(viewing_direction, Reflection)
     for h in range(height):
         normalize(normal[h], copy=False)
-    print(normal[100][100])
+    
+     # Just for visualising
+    # TODO :: High Pass Filter
     normal = (normal + 1.0) / 2.0
-    print(normal[100][100])
     normal *= 255.0
     im = Image.fromarray(normal.astype('uint8'))
-
-    """       
-    # Just for visualising
-    Reflection = (Reflection + 1) / 2
-    Reflection *= 255
-    im = Image.fromarray(Reflection.astype('uint8'))
     im.save("specular_normal.jpg")
-    """
+    #plt.imshow(im)
+    #plt.show()
+    return normal
+
+
+def HPF(image) :
+    kernel = np.array([[-1, -1, -1],
+                        [-1,  8, -1],
+                         [-1, -1, -1]])
+    kernel = np.array([[-1, -1, -1, -1, -1],
+                   [-1,  1,  2,  1, -1],
+                   [-1,  2,  4,  2, -1],
+                   [-1,  1,  2,  1, -1],
+                   [-1, -1, -1, -1, -1]])
+    dst = cv.filter2D(image, -1, kernel)
+    im = Image.fromarray(dst.astype('uint8'))
+    im.save("specular_normal_filtered.jpg")
     plt.imshow(im)
     plt.show()
-    
-    # TODO :: what is viewing direction ?
-    return
 
 if __name__ == "__main__":
 
@@ -354,5 +361,6 @@ if __name__ == "__main__":
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
     specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, (0,1,0))
+    HPF(specular_normal)
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))

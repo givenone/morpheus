@@ -37,3 +37,5 @@ resultant normal map.
 - TODO :: Optimization of the code
 
 - using tensordot, einsum for rotation of all image efficiently
+
+- TODO :: [High Pass Filter](https://www.harrisgeospatial.com/docs/HighPassFilter.html)
