@@ -5,6 +5,11 @@ from PIL import Image
 from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 
+import sys,os
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+import geometry.pointcloud as pointcloud
+
 import concurrent.futures
 
 
@@ -62,6 +67,8 @@ def calculateMixedAlbedo(path, form) :
     b.save("mixed_albedo_blue.jpg")
     g.save("mixed_albedo_green.jpg")
     r.save("mixed_albedo_red.jpg")
+
+    print("Mixed Albedo Done")
     return img #BGR
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
     #plt.show()
@@ -104,6 +111,7 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,1] = np.subtract(mixed[...,1], specular)
     out_img[...,2] = np.subtract(mixed[...,2], specular)
 
+    print("Diffuse Albedo Done")
     return out_img
 
 def calculateSpecularAlbedo(path, form) :
@@ -180,7 +188,8 @@ def calculateSpecularAlbedo(path, form) :
 
     #print(specular_median)
     #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
-    #plt.show()  
+    #plt.show()
+    print("Specular Albedo Done")  
     return specular_median   
 
 
@@ -234,12 +243,13 @@ def calculateMixedNormals(path, form):
         #fig.add_subplot(1,3,i+1)
         #plt.imshow(im)
     """
+    print("Mixed Normal Done")
     return encodedImage
     #plt.show()
     
 
 
-def calculateDiffuseNormals(path, form, diffuse_albedo):
+def calculateDiffuseNormals(path, form, diffuse_albedo, viewing_direction):
     images = []
 
     prefix = path
@@ -281,7 +291,8 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
     encodedImage[..., 2] = N[2] # Z
     for h in range(height):
         normalize(encodedImage[h], copy=False)  #normalizing
-    #modulation with diffuse albedo    
+    #modulation with diffuse albedo
+    print("Diffuse Normal Done")    
     return encodedImage
 
 
@@ -294,6 +305,8 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
 
     im = Image.fromarray(encodedImage.astype('uint8'))
     im.save("diffuse_normal.jpg")
+
+    
     #plt.imshow(im)
     #plt.show()
     
@@ -313,7 +326,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
     height, width, _ = Reflection.shape
-    viewing_direction = np.array([[( (i-width/2)/width, -1, (j-height/2)/height ) for i in range(width)] for j in range(height)]) #needs geometry.
+    #viewing_direction = np.array([[( (i-width/2)/width, -1, (j-height/2)/height ) for i in range(width)] for j in range(height)]) #needs geometry.
     print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
         normalize(Reflection[h], copy=False)
@@ -324,17 +337,17 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
         normalize(normal[h], copy=False)
     
      # Just for visualising
-    # TODO :: High Pass Filter
     normal = (normal + 1.0) / 2.0
     normal *= 255.0
     im = Image.fromarray(normal.astype('uint8'))
     im.save("specular_normal.jpg")
     #plt.imshow(im)
     #plt.show()
+    print("Speuclar Normal Done")
     return normal
 
 
-def HPF(image) :
+def HPF(normal) : # High Pass Filtering for specular normal reconstruction
     kernel = np.array([[-1, -1, -1],
                         [-1,  8, -1],
                          [-1, -1, -1]])
@@ -345,17 +358,38 @@ def HPF(image) :
                    [-1,  1,  2,  1, -1],
                    [-1, -1, -1, -1, -1]])
     
-    dst = cv.filter2D(image, -1, kernel)
+    filtered_normal = np.zeros_like(normal)
+    filtered_normal[... , 0] = cv.filter2D(normal[...,0], -1, kernel)
+    filtered_normal[... , 1] = cv.filter2D(normal[...,1], -1, kernel)
+    filtered_normal[... , 2] = cv.filter2D(normal[...,2], -1, kernel)
+
+    height, width, _ = normal.shape
+
+    for h in range(height):
+        normalize(filtered_normal[h], copy=False)
+
+    #dst = cv.filter2D(image, -1, kernel)
     
-    im = Image.fromarray(dst.astype('uint8'))
-    im.save("specular_normal_filtered.jpg")
+    filtered_normal = (normal + 1.0) / 2.0
+    filtered_normal *= 255.0
+    im = Image.fromarray(filtered_normal.astype('uint8'))
+    #cim.save("specular_normal_filtered.jpg")
+
     plt.imshow(im)
     plt.show()
+
+    print("High Pass Filter Done")
+    return filtered_normal
 
 if __name__ == "__main__":
 
     path = "/home/givenone/Desktop/cycle_test_revised_6_hdr/"
     form = ".hdr"
+
+    pc = pointcloud.generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr"
+    , focalLength = 0.005, cameraLocation= (-4.9, 0))
+
+    vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
 
     specular_albedo = calculateSpecularAlbedo(path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
@@ -363,7 +397,8 @@ if __name__ == "__main__":
 
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
-    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, (0,1,0))
-    HPF(specular_normal)
+    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
+
+    filtered_normal = HPF(specular_normal)
     #with concurrent.futures.ProcessPoolExecutor() as executor:
     #        executor.map(calculateDiffuseNormals, range(1, 11))
