@@ -2,7 +2,7 @@ from PIL import Image
 import numpy as np
 import cv2 as cv
 
-def generate_pointcloud(depth, focalLength, sensorSize, cameraLocation) :
+def generate_pointcloud(depth, focalLength, cameraLocation, sensor = (36, 24)) :
     
     # Load Depth Map (Camera Coordinate)
     img = cv.imread(depth, 3)
@@ -15,10 +15,13 @@ def generate_pointcloud(depth, focalLength, sensorSize, cameraLocation) :
     centerX = height/2
     centerY = width/2
 
-    pc = [[( (x - centerX) / height * sensorSize * arr[x][y] / focalLength, cameraLocation + arr[x][y], (y - centerY) / width * sensorSize * arr[x][y] / focalLength) for x in range(height)] for y in range(width)]
+    sensor_width = sensor[0]
+    sensor_height = sensor[1]
+
+    pc = [[( (x - centerX) / height * sensor_height * arr[x][y] / focalLength, cameraLocation + arr[x][y], (y - centerY) / width * sensor_width * arr[x][y] / focalLength) for x in range(height)] for y in range(width)]
 
     np.savetxt("pointcloud.txt", np.reshape(pc, (-1,3)))
     return pc
 # focal length = 50mm
 
-generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" ,0.005, 0.035, -4.9)
+#generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005, cameraLocation=-4.9)

@@ -2,7 +2,9 @@
 # "/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
 import bpy
 import os, sys
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import util
 import preprocessing
 import blender
@@ -44,9 +46,7 @@ if __name__ == "__main__":
     blender.displaceBlenderObject("/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object", "Emily_2_1")
 
     print("Done preprocessing")
-    
-    geometry.depth.getDistanceMap(1, 1, "/home/givenone/morpheus/photogeometric/Simulation/output", "dist")
-    
+
     for light in lights :        
         util.clean_objects() # Remove all lights
         pattern_name = light[0] # name of pattern.
@@ -56,5 +56,14 @@ if __name__ == "__main__":
         
         blender.rendering.render("/home/givenone/morpheus/photogeometric/Simulation/output", pattern_name)
         print(pattern_name, "rendering done")
-        break     
-    util.save_configuration("config.txt")    
+             
+    print("Rendering Done")
+
+    util.save_configuration("config.txt")  # Saving Configuration Details   
+
+    # Genearte Geometry Details
+    (w, h) = geometry.depth.getDistanceMap(1, 1, "/home/givenone/morpheus/photogeometric/Simulation/output", "dist")
+    geometry.pointcloud.generate_pointcloud()
+    print("Generated Point Cloud")
+
+    # Reconstruction   

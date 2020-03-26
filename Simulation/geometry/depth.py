@@ -20,17 +20,22 @@ def getDistanceMap(width, height, dir_path, filename):
     # Links
     links.new(rl.outputs['Depth'], v.inputs[0]) # link Z to output
 
-    scene.render.resolution_x = 4096
-    scene.render.resolution_y = 2160
+    scene.render.resolution_x = width  #4096
+    scene.render.resolution_y = height #2160
     bpy.context.scene.render.image_settings.file_format = "HDR"
+    w, h = (36, 24)
     # render
-    for cam in [obj for obj in bpy.data.objects if obj.type == 'CAMERA']:
-        
+    for i, cam in enumerate([obj for obj in bpy.data.objects if obj.type == 'CAMERA']):
+
+        w, h  = cam.data.sensor_width, cam.data.sensor_height
+
         scene.camera = cam
-        scene.render.filepath = os.path.join(dir_path, filename)
+        scene.render.filepath = os.path.join(dir_path, filename + str(i))
         bpy.ops.render.render(write_still=True)
     
     scene.use_nodes = False
+
+    return(w * 0.001, h * 0.001) # mm scale
 
     #pixels = bpy.data.images['Viewer Node'].pixels
     #depth = np.asarray(pixels)
