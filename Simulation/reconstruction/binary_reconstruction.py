@@ -9,8 +9,31 @@ import sys,os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 import geometry.pointcloud as pointcloud
-
 import concurrent.futures
+
+def plot(image) :
+    #Input : np array
+
+    height, width, channel = image.shape
+
+    if(channel == 3) :
+        for h in range(height):
+            normalize(image[h], copy=False)  #normalizing
+
+            image = (image + 1.0) / 2.0
+            image *= 255.0
+            im = Image.fromarray(image.astype('uint8'))
+    
+            plt.imshow(im)
+            plt.show()
+
+    else : #gray scale image
+        im = Image.fromarray(image.astype('uint8'), 'L')
+        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
+        plt.show()
+
+def save(path, format, image) :
+    return
 
 
 def createYRotationMatric(theta):
@@ -56,52 +79,16 @@ def calculateMixedAlbedo(path, form) :
     img = cv.imread(name, 3) #BGR
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
+    '''
     blue = img[..., 0]
     green = img[..., 1]
     red = img[..., 2]
-
-    b = Image.fromarray(blue.astype('uint8'), 'L')
-    g = Image.fromarray(blue.astype('uint8'), 'L')
-    r = Image.fromarray(blue.astype('uint8'), 'L')
-    
-    b.save("mixed_albedo_blue.jpg")
-    g.save("mixed_albedo_green.jpg")
-    r.save("mixed_albedo_red.jpg")
+    '''
 
     print("Mixed Albedo Done")
-    return img #BGR
-    #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
-    #plt.show()
-    """
-    #plt.imshow(rgb_img, interpolation='bicubic')
+    return img # BGR Image
 
-    fig = plt.figure() 
-    out_img = np.zeros_like(img)
-    out_img[:,:,0] = red
-    out_img[:,:,1] = red
-    out_img[:,:,2] = red
 
-    #fig.add_subplot(1,3,1)
-    #plt.imshow(out_img)
-
-    out_img_1 = np.zeros_like(img)
-    out_img_1[:,:,0] = green
-    out_img_1[:,:,1] = green
-    out_img_1[:,:,2] = green
-
-    #fig.add_subplot(1,3,2)
-    #plt.imshow(out_img_1)
-
-    out_img_2 = np.zeros_like(img)
-    out_img_2[:,:,0] = blue
-    out_img_2[:,:,1] = blue
-    out_img_2[:,:,2] = blue
-    
-    #fig.add_subplot(1,3,3)
-    #plt.imshow(out_img_2)
-
-    plt.show() 
-    """ 
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
@@ -127,6 +114,7 @@ def calculateSpecularAlbedo(path, form) :
     H, S, V  = [], [], []
 
     for i in names:
+        # H S V Separation
         img = cv.imread(i, 3)
         arr = array(img)
         images.append(arr.astype('float64'))
@@ -162,33 +150,10 @@ def calculateSpecularAlbedo(path, form) :
         
         specular_albedo[i] = np.maximum(spec, spec_c)
 
+    # TODO :: Fresnel Gain Modulation
+
     specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
 
-
-    ''' This is non-using np-optimization version
-
-    for i in range(3) :
-        specular_albedo[i]= np.zeros((height, width))
-        a, a_c = i, i+1
-        for h in range(height) :
-            for w in range(width) :
-                chroma_g = max(bgr_images[a][h][w]) - min(bgr_images[a][h][w])
-                value_g = hsv_images[a][h][w][2]
-                saturation_c = hsv_images[a_c][h][w][1]
-
-                chroma_c = max(bgr_images[a_c][h][w]) - min(bgr_images[a_c][h][w])
-                value_c = hsv_images[a_c][h][w][2]
-                saturation_g = hsv_images[a][h][w][1]
-
-                delta = value_g - chroma_g/saturation_c if saturation_c != 0 else 0  
-                delta_c = value_c - chroma_c/saturation_g if saturation_g != 0 else 0
-
-                specular_albedo[i][h][w] = max(delta, delta_c)
-    '''
-
-    #print(specular_median)
-    #plt.imshow(im, cmap='gray', vmin=0, vmax=255)
-    #plt.show()
     print("Specular Albedo Done")  
     return specular_median   
 
@@ -210,46 +175,22 @@ def calculateMixedNormals(path, form):
 
     height, width, _ = images[0].shape
 
-    N_x = (images[0] - images[1])# / 255
-    N_y = (images[2] - images[3])# / 255
-    N_z = (images[4] - images[5])# / 255
-
+    N_x = (images[0] - images[1])
+    N_y = (images[2] - images[3])
+    N_z = (images[4] - images[5])
 
     encodedImage = np.empty_like(N_x).astype('float64')
     encodedImage[...,0] = N_x[..., 0] #Mixed Normal -> blue component
     encodedImage[...,1] = N_y[..., 0]
     encodedImage[...,2] = N_z[..., 0]
 
-    """
-    fig = plt.figure() 
-    for i in range(3) :
-        encodedImage.append(np.empty_like(N_x).astype('float64'))
-        encodedImage[i][..., 0] = N_x[..., i]
-        encodedImage[i][..., 1] = N_y[..., i]
-        encodedImage[i][..., 2] = N_z[..., i] #red normal
+    for h in range(height):
+            normalize(encodedImage[h], copy=False)  #normalizing
 
-        #only for visualizing
-        for h in range(height):
-            normalize(encodedImage[i][h], copy=False)
-            
-        # only for visualising
-        encodedImage[i] = (encodedImage[i] + 1.0) / 2.0
-        encodedImage[i] *= 255.0
-
-        im = Image.fromarray(encodedImage[i].astype('uint8'))
-        
-        im.save("mixed_normal{}.jpg".format(i))
-        
-        #fig.add_subplot(1,3,i+1)
-        #plt.imshow(im)
-    """
     print("Mixed Normal Done")
     return encodedImage
-    #plt.show()
-    
 
-
-def calculateDiffuseNormals(path, form, diffuse_albedo, viewing_direction):
+def calculateDiffuseNormals(path, form, diffuse_albedo):
     images = []
 
     prefix = path
@@ -281,41 +222,21 @@ def calculateDiffuseNormals(path, form, diffuse_albedo, viewing_direction):
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
         N.append(G-G_C)
-        
-        
-    # for visualising
-
+    
     encodedImage = np.empty_like(images[0]).astype('float64')
     encodedImage[..., 0] = N[0] # X
     encodedImage[..., 1] = N[1] # Y
     encodedImage[..., 2] = N[2] # Z
     for h in range(height):
         normalize(encodedImage[h], copy=False)  #normalizing
-    #modulation with diffuse albedo
+
     print("Diffuse Normal Done")    
     return encodedImage
-
-
-    # only for visualising
-    for h in range(height):
-        normalize(encodedImage[h], copy=False)
-        
-    encodedImage = (encodedImage + 1.0) / 2.0
-    encodedImage *= 255.0
-
-    im = Image.fromarray(encodedImage.astype('uint8'))
-    im.save("diffuse_normal.jpg")
-
-    
-    #plt.imshow(im)
-    #plt.show()
-    
 
 def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
     
     alpha = np.divide(diffuse_albedo[...,0], mixed_albedo[...,0], out=np.zeros_like(mixed_albedo[...,0]), where=mixed_albedo[...,0]!=0)
 
-    # TODO :: Can be done more efficiently? alpha * normal (3 channel)
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
     d_y = np.multiply(diffuse_normal[..., 1], alpha)
     d_z = np.multiply(diffuse_normal[..., 2], alpha)
@@ -326,24 +247,19 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
     height, width, _ = Reflection.shape
-    #viewing_direction = np.array([[( (i-width/2)/width, -1, (j-height/2)/height ) for i in range(width)] for j in range(height)]) #needs geometry.
+    
+    viewing_direction = np.array(viewing_direction)
     print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
-        normalize(Reflection[h], copy=False)
-    #np.savetxt("specular_normal.txt", np.reshape(Reflection, (-1,3)))
+        normalize(Reflection[h], copy=False) # Normalize Reflection
     
-    normal = np.add(viewing_direction, Reflection)
+    normal = np.add(viewing_direction, Reflection) #subtract ?
     for h in range(height):
         normalize(normal[h], copy=False)
     
-     # Just for visualising
-    normal = (normal + 1.0) / 2.0
-    normal *= 255.0
-    im = Image.fromarray(normal.astype('uint8'))
-    im.save("specular_normal.jpg")
-    #plt.imshow(im)
-    #plt.show()
     print("Speuclar Normal Done")
+    plot(normal)
+
     return normal
 
 
@@ -368,16 +284,8 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
     for h in range(height):
         normalize(filtered_normal[h], copy=False)
 
-    #dst = cv.filter2D(image, -1, kernel)
+    plot(filtered_normal)
     
-    filtered_normal = (normal + 1.0) / 2.0
-    filtered_normal *= 255.0
-    im = Image.fromarray(filtered_normal.astype('uint8'))
-    #cim.save("specular_normal_filtered.jpg")
-
-    plt.imshow(im)
-    plt.show()
-
     print("High Pass Filter Done")
     return filtered_normal
 
@@ -400,5 +308,3 @@ if __name__ == "__main__":
     specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
-    #with concurrent.futures.ProcessPoolExecutor() as executor:
-    #        executor.map(calculateDiffuseNormals, range(1, 11))
