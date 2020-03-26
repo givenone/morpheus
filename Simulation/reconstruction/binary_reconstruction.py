@@ -4,6 +4,7 @@ from numpy import array
 from PIL import Image
 from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
+import pickle
 
 import sys,os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
@@ -20,12 +21,12 @@ def plot(image) :
         for h in range(height):
             normalize(image[h], copy=False)  #normalizing
 
-            image = (image + 1.0) / 2.0
-            image *= 255.0
-            im = Image.fromarray(image.astype('uint8'))
-    
-            plt.imshow(im)
-            plt.show()
+        image = (image + 1.0) / 2.0
+        image *= 255.0
+        im = Image.fromarray(image.astype('uint8'))
+
+        plt.imshow(im)
+        plt.show()
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
@@ -92,7 +93,6 @@ def calculateMixedAlbedo(path, form) :
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
-    print(mixed.shape)
     out_img = np.zeros_like(mixed)
     out_img[...,0] = np.subtract(mixed[...,0], specular)
     out_img[...,1] = np.subtract(mixed[...,1], specular)
@@ -217,7 +217,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
         # m, n, 3 x 3, 3 -> m, n, 3
         I_suv_g = np.einsum('mnr,rx->mnx', images[2*i], R)
         I_suv_c = np.einsum('mnr,rx->mnx', images[2*i+1], R)
-        print(I_suv_g.shape)
+    
         # pure diffuse component
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
@@ -248,12 +248,12 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     Reflection = np.subtract(mixed_normal, alphadiffuse)
     height, width, _ = Reflection.shape
     
-    viewing_direction = np.array(viewing_direction)
-    print("viewing direction shape", viewing_direction.shape)
     for h in range(height):
         normalize(Reflection[h], copy=False) # Normalize Reflection
-    
-    normal = np.add(viewing_direction, Reflection) #subtract ?
+
+    viewing_direction = np.array(viewing_direction)
+    normal = np.subtract(Reflection, viewing_direction) #subtract ?
+
     for h in range(height):
         normalize(normal[h], copy=False)
     
@@ -274,18 +274,19 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
                    [-1,  1,  2,  1, -1],
                    [-1, -1, -1, -1, -1]])
     
-    filtered_normal = np.zeros_like(normal)
-    filtered_normal[... , 0] = cv.filter2D(normal[...,0], -1, kernel)
-    filtered_normal[... , 1] = cv.filter2D(normal[...,1], -1, kernel)
-    filtered_normal[... , 2] = cv.filter2D(normal[...,2], -1, kernel)
-
+    filtered_normal = cv.filter2D(normal, -1, kernel)
+ 
     height, width, _ = normal.shape
 
     for h in range(height):
         normalize(filtered_normal[h], copy=False)
 
+
+    blur = cv.GaussianBlur(normal, (31, 31), 0)
+    filtered_normal = cv.subtract(normal, blur)
+
     plot(filtered_normal)
-    
+
     print("High Pass Filter Done")
     return filtered_normal
 
@@ -293,12 +294,23 @@ if __name__ == "__main__":
 
     path = "/home/givenone/Desktop/cycle_test_revised_6_hdr/"
     form = ".hdr"
+    '''
+    try :
+        fp = open("/home/givenone/morpheus/photogeometric/Simulation/geometry/pc.txt", "rb")
+        pc = pickle.load(fp)
+    except IOError :
+        print("Saving pc ...")
+        pc = pointcloud.generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr"
+        , focalLength = 0.005, cameraLocation= (-4.9, 0))
 
-    pc = pointcloud.generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr"
-    , focalLength = 0.005, cameraLocation= (-4.9, 0))
-
+    try :
+        print("Saving vd ...") 
+        fp = open("/home/givenone/morpheus/photogeometric/Simulation/geometry/vd.txt", "rb")
+        vd = pickle.load(fp)
+    except IOError : 
+        vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
+    '''
     vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
-
     specular_albedo = calculateSpecularAlbedo(path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
