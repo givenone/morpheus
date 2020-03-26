@@ -12,11 +12,11 @@ import geometry
 
 option = "BINARY"
 
-def get_output_file_path() -> str:
-    return str(sys.argv[sys.argv.index('--') + 1])
+def get_output_file_path():
+    return str(soys.argv[sys.argv.index('--') + 1])
 
 
-def get_input_obj_path() -> str:
+def get_input_obj_path():
     return str(sys.argv[sys.argv.index('--') + 2])
 
 

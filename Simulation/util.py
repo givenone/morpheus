@@ -9,7 +9,7 @@ def setting(**kwargs) :
     bpy.context.scene.cycles.max_bounces = 1
     return
 
-def clean_objects(ty="LIGHT", all=False) -> None:
+def clean_objects(ty="LIGHT", all=False):
     for item in bpy.data.objects:
         if all or item.type == ty :
             bpy.data.objects.remove(item)
