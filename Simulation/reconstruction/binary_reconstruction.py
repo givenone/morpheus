@@ -15,9 +15,10 @@ import concurrent.futures
 def plot(image) :
     #Input : np array
 
-    height, width, channel = image.shape
+    a = image.shape
+    height, width = a[0], a[1]
 
-    if(channel == 3) :
+    if(len(a) == 3) :
         for h in range(height):
             normalize(image[h], copy=False)  #normalizing
 
@@ -30,7 +31,7 @@ def plot(image) :
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
-        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
+        plt.imshow(im, cmap='gray', vmin=0, vmax=100)
         plt.show()
 
 def save(path, format, image) :
@@ -78,6 +79,8 @@ def calculateMixedAlbedo(path, form) :
 
     name = path + "w" + form
     img = cv.imread(name, 3) #BGR
+    arr = array(img)
+    arr = arr.astype('float64')
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
     '''
@@ -85,7 +88,9 @@ def calculateMixedAlbedo(path, form) :
     green = img[..., 1]
     red = img[..., 2]
     '''
-
+    plot(img[..., 0])
+    plot(img[..., 1])
+    plot(img[..., 2])
     print("Mixed Albedo Done")
     return img # BGR Image
 
@@ -93,11 +98,11 @@ def calculateMixedAlbedo(path, form) :
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
-    out_img = np.zeros_like(mixed)
+    out_img = np.zeros_like(mixed).astype('float64')
     out_img[...,0] = np.subtract(mixed[...,0], specular)
     out_img[...,1] = np.subtract(mixed[...,1], specular)
     out_img[...,2] = np.subtract(mixed[...,2], specular)
-
+    
     print("Diffuse Albedo Done")
     return out_img
 
@@ -154,6 +159,7 @@ def calculateSpecularAlbedo(path, form) :
 
     specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
 
+    plot(specular_median)
     print("Specular Albedo Done")  
     return specular_median   
 
@@ -186,8 +192,9 @@ def calculateMixedNormals(path, form):
 
     for h in range(height):
             normalize(encodedImage[h], copy=False)  #normalizing
-
+    
     print("Mixed Normal Done")
+    plot(encodedImage)
     return encodedImage
 
 def calculateDiffuseNormals(path, form, diffuse_albedo):
@@ -230,7 +237,8 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
     for h in range(height):
         normalize(encodedImage[h], copy=False)  #normalizing
 
-    print("Diffuse Normal Done")    
+    print("Diffuse Normal Done")  
+    plot(encodedImage)  
     return encodedImage
 
 def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
@@ -251,7 +259,6 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     for h in range(height):
         normalize(Reflection[h], copy=False) # Normalize Reflection
 
-    print(viewing_direction[1080][2048], Reflection[1080][2048])
     normal = np.subtract(Reflection, viewing_direction) #subtract ?
 
     for h in range(height):
@@ -282,13 +289,24 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
         normalize(filtered_normal[h], copy=False)
 
 
-    blur = cv.GaussianBlur(normal, (31, 31), 0)
+    blur = cv.GaussianBlur(normal, (199, 199), 0)
     filtered_normal = cv.subtract(normal, blur)
 
     plot(filtered_normal)
 
     print("High Pass Filter Done")
     return filtered_normal
+
+def synthesize(diffuse_normal, filtered_normal) :
+    syn = np.add(diffuse_normal, filtered_normal)
+
+    height, width, _ = syn.shape
+
+    for h in range(height):
+        normalize(syn[h], copy=False)
+    plot(syn)
+
+    return syn
 
 if __name__ == "__main__":
 
@@ -320,3 +338,4 @@ if __name__ == "__main__":
     specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
+    syn = synthesize(diffuse_normal, filtered_normal)

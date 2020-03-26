@@ -13,7 +13,7 @@ import geometry
 option = "BINARY"
 
 def get_output_file_path():
-    return str(soys.argv[sys.argv.index('--') + 1])
+    return str(sys.argv[sys.argv.index('--') + 1])
 
 
 def get_input_obj_path():
@@ -29,21 +29,29 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects(all = True)
-    #util.setting()
+    util.setting()
     
+    # Configuration
     frame = "models/dome/ico_3.obj"
+    emily = "/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
+    emily_name = "Emily_2_1"
+    frame_scale = 5
+    room_scale = 10
+    camera_location = [0,-4.9,0]
+    output_path = "/home/givenone/morpheus/photogeometric/Simulation/output"
+
     vertices = preprocessing.read_vertices_objects(frame)
     faces = preprocessing.read_faces_objects(frame)
 
-    blender.displaceFrame(vertices,faces, 5) # 5 : scale
-    blender.displaceRoom(10) # 10 : scale
+    blender.displaceFrame(vertices,faces, frame_scale)
+    blender.displaceRoom(room_scale) # 10 : scale
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
     
-    cameras = [{'location': [0,-4.9,0]}]
+    cameras = [{'location': camera_location}]
     blender.displaceCamera(cameras)
     
     # Displace Object
-    blender.displaceBlenderObject("/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object", "Emily_2_1")
+    blender.displaceBlenderObject(emily, emily_name)
 
     print("Done preprocessing")
 
@@ -54,7 +62,7 @@ if __name__ == "__main__":
 
         print("Light Displacement Done")
         
-        blender.rendering.render("/home/givenone/morpheus/photogeometric/Simulation/output", pattern_name)
+        blender.rendering.render(output_path, pattern_name)
         print(pattern_name, "rendering done")
              
     print("Rendering Done")
@@ -62,7 +70,7 @@ if __name__ == "__main__":
     util.save_configuration("config.txt")  # Saving Configuration Details   
 
     # Genearte Geometry Details
-    (w, h) = geometry.depth.getDistanceMap(1, 1, "/home/givenone/morpheus/photogeometric/Simulation/output", "dist")
+    (w, h) = geometry.depth.getDistanceMap(1, 1, output_path, "dist")
     geometry.pointcloud.generate_pointcloud()
     print("Generated Point Cloud")
 
