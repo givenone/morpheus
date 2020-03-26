@@ -251,7 +251,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     for h in range(height):
         normalize(Reflection[h], copy=False) # Normalize Reflection
 
-    viewing_direction = np.array(viewing_direction)
+    print(viewing_direction[1080][2048], Reflection[1080][2048])
     normal = np.subtract(Reflection, viewing_direction) #subtract ?
 
     for h in range(height):
