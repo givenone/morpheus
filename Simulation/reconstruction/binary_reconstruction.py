@@ -42,6 +42,37 @@ def createYRotationMatric(theta):
     cos, sin = np.cos(theta), np.sin(theta)
     return np.array([[cos, 0, sin], [0, 1, 0], [-sin, 0, cos]])
 
+
+def get_inv_mat(image) :
+    #input : images spanning on RGB (I)
+    #output : rotation matrix of each pixel (m,n, 3, 3) which is inverse matrix..
+    # e1 = [1,1,1] / norm
+    # e2 = i x e1
+    # e3 = e2 x e1
+    # out : inverse matrix. if singular : results : [1, 0, 0]
+
+    e1 = [1.0, 1.0, 1.0]
+    e1 = e1 / np.linalg.norm(e1) 
+
+    height, width, channel = image.shape
+
+    Rotation = np.empty((height, width, 3, 3)).astype('float64')
+    singular = np.array([ [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0] ])
+    singular = singular.astype('float64')
+    for i in range(height) : 
+        for j in range(width) : 
+            e2 = np.cross(image[i][j], e1)
+            e2 = e2 / np.linalg.norm(e2)
+
+            e3 = np.cross(e1, e2)
+            e3 = e3 / np.linalg.norm(e3)
+
+            new_base = np.array([e1, e2, e3])
+            try :
+                Rotation[i][j] = np.linalg.inv(new_base)
+            except np.linalg.LinAlgError as err :
+                Rotation[i][j] = singular
+    return Rotation
 def get_rot_mat(rot_v, unit=None):
     '''
     takes a vector and returns the rotation matrix required to align the unit vector(2nd arg) to it
@@ -88,9 +119,7 @@ def calculateMixedAlbedo(path, form) :
     green = img[..., 1]
     red = img[..., 2]
     '''
-    plot(img[..., 0])
-    plot(img[..., 1])
-    plot(img[..., 2])
+    
     print("Mixed Albedo Done")
     return img # BGR Image
 
@@ -158,8 +187,7 @@ def calculateSpecularAlbedo(path, form) :
     # TODO :: Fresnel Gain Modulation
 
     specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
-
-    plot(specular_median)
+    cv.imwrite("specular_albedo.hdr", specular_median);
     print("Specular Albedo Done")  
     return specular_median   
 
@@ -194,10 +222,10 @@ def calculateMixedNormals(path, form):
             normalize(encodedImage[h], copy=False)  #normalizing
     
     print("Mixed Normal Done")
-    plot(encodedImage)
+    
     return encodedImage
 
-def calculateDiffuseNormals(path, form, diffuse_albedo):
+def calculateDiffuseNormals(path, form):
     images = []
 
     prefix = path
@@ -219,6 +247,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
 
     N = []
     for i in range(3) :
+        """
         I_suv_g=np.zeros(images[i].shape)
         I_suv_c=np.zeros(images[i].shape)
         # m, n, 3 x 3, 3 -> m, n, 3
@@ -229,7 +258,18 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
         N.append(G-G_C)
-    
+
+        print(images[2*i][850][1700], images[2*i+1][850][1700], I_suv_g[850][1700], I_suv_c[850][1700], (G-G_C)[850][1700])
+        """
+
+        R_g = get_inv_mat(images[2*i])
+        R_c = get_inv_mat(images[2*i + 1])
+        I_suv_g = np.einsum("mnx, mnxy -> mny", images[2*i], R_g)
+        I_suv_c = np.einsum("mnx, mnxy -> mny", images[2*i+1], R_c)
+        G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
+        G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
+        N.append(G-G_C)
+
     encodedImage = np.empty_like(images[0]).astype('float64')
     encodedImage[..., 0] = N[0] # X
     encodedImage[..., 1] = N[1] # Y
@@ -238,7 +278,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
         normalize(encodedImage[h], copy=False)  #normalizing
 
     print("Diffuse Normal Done")  
-    plot(encodedImage)  
+    plot(encodedImage)
     return encodedImage
 
 def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
@@ -266,7 +306,6 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     
     print("Speuclar Normal Done")
     plot(normal)
-
     return normal
 
 
@@ -289,10 +328,9 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
         normalize(filtered_normal[h], copy=False)
 
 
-    blur = cv.GaussianBlur(normal, (199, 199), 0)
+    blur = cv.GaussianBlur(normal, (301, 301), 0)
     filtered_normal = cv.subtract(normal, blur)
 
-    plot(filtered_normal)
 
     print("High Pass Filter Done")
     return filtered_normal
@@ -304,13 +342,13 @@ def synthesize(diffuse_normal, filtered_normal) :
 
     for h in range(height):
         normalize(syn[h], copy=False)
+    print("Specular Normal Synthesis done")
     plot(syn)
-
     return syn
 
 if __name__ == "__main__":
 
-    path = "/home/givenone/Desktop/cycle_test_revised_6_hdr/"
+    path = "/home/givenone/Desktop/cycle_test_revised_7_hdr/"
     form = ".hdr"
     '''
     try :
@@ -328,14 +366,14 @@ if __name__ == "__main__":
     except IOError : 
         vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
     '''
-    vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
-    specular_albedo = calculateSpecularAlbedo(path, form)
-    mixed_albedo = calculateMixedAlbedo(path, form)
-    diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
+    #vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
+    #specular_albedo = calculateSpecularAlbedo(path, form)
+    #mixed_albedo = calculateMixedAlbedo(path, form)
+    #diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
-    mixed_normal = calculateMixedNormals(path, form)
-    diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
-    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
+    #mixed_normal = calculateMixedNormals(path, form)
+    diffuse_normal = calculateDiffuseNormals(path, form)
+    #specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
 
-    filtered_normal = HPF(specular_normal)
-    syn = synthesize(diffuse_normal, filtered_normal)
+    #filtered_normal = HPF(specular_normal)
+    #syn = synthesize(diffuse_normal, filtered_normal)
