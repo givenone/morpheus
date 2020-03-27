@@ -5,7 +5,7 @@ from PIL import Image
 from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 import pickle
-
+import math
 import sys,os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
@@ -37,42 +37,36 @@ def plot(image) :
 def save(path, format, image) :
     return
 
+def rotation_matrix(axis, theta):
+    """
+    Return the rotation matrix associated with counterclockwise rotation about
+    the given axis by theta radians.
+    """
+    axis = np.asarray(axis)
+    norm = math.sqrt(np.dot(axis, axis))
+    if norm == 0 :
+        axis = np.asarray([0,0,0])
+    else :
+        axis = axis / math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
-def createYRotationMatric(theta):
-    cos, sin = np.cos(theta), np.sin(theta)
-    return np.array([[cos, 0, sin], [0, 1, 0], [-sin, 0, cos]])
-
-
-def get_inv_mat(image) :
-    #input : images spanning on RGB (I)
-    #output : rotation matrix of each pixel (m,n, 3, 3) which is inverse matrix..
-    # e1 = [1,1,1] / norm
-    # e2 = i x e1
-    # e3 = e2 x e1
-    # out : inverse matrix. if singular : results : [1, 0, 0]
-
-    e1 = [1.0, 1.0, 1.0]
-    e1 = e1 / np.linalg.norm(e1) 
+def get_D(image) : 
+    e1 = np.array([1.0, 1.0, 1.0]).astype('float64')
+    e1 = e1 / np.linalg.norm(e1)
 
     height, width, channel = image.shape
 
-    Rotation = np.empty((height, width, 3, 3)).astype('float64')
-    singular = np.array([ [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0] ])
-    singular = singular.astype('float64')
-    for i in range(height) : 
-        for j in range(width) : 
-            e2 = np.cross(image[i][j], e1)
-            e2 = e2 / np.linalg.norm(e2)
+    D = np.zeros((height, width)).astype('float64')
 
-            e3 = np.cross(e1, e2)
-            e3 = e3 / np.linalg.norm(e3)
-
-            new_base = np.array([e1, e2, e3])
-            try :
-                Rotation[i][j] = np.linalg.inv(new_base)
-            except np.linalg.LinAlgError as err :
-                Rotation[i][j] = singular
-    return Rotation
+    axis = np.cross(image, e1)   # sin theta?  
+    D=np.linalg.norm(axis, axis = 2)
+    return D
 def get_rot_mat(rot_v, unit=None):
     '''
     takes a vector and returns the rotation matrix required to align the unit vector(2nd arg) to it
@@ -261,13 +255,18 @@ def calculateDiffuseNormals(path, form):
 
         print(images[2*i][850][1700], images[2*i+1][850][1700], I_suv_g[850][1700], I_suv_c[850][1700], (G-G_C)[850][1700])
         """
-
+        """
         R_g = get_inv_mat(images[2*i])
         R_c = get_inv_mat(images[2*i + 1])
+        
         I_suv_g = np.einsum("mnx, mnxy -> mny", images[2*i], R_g)
         I_suv_c = np.einsum("mnx, mnxy -> mny", images[2*i+1], R_c)
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
+        """
+        print(i)
+        G = get_D(images[2*i])
+        G_C = get_D(images[2*i + 1])
         N.append(G-G_C)
 
     encodedImage = np.empty_like(images[0]).astype('float64')
