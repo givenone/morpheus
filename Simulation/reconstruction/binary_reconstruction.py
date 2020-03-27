@@ -327,11 +327,12 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
         normalize(filtered_normal[h], copy=False)
 
 
-    blur = cv.GaussianBlur(normal, (301, 301), 0)
+    blur = cv.GaussianBlur(normal, (31, 31), 0)
     filtered_normal = cv.subtract(normal, blur)
 
 
     print("High Pass Filter Done")
+    plot(filtered_normal)
     return filtered_normal
 
 def synthesize(diffuse_normal, filtered_normal) :
@@ -365,14 +366,14 @@ if __name__ == "__main__":
     except IOError : 
         vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
     '''
-    #vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
-    #specular_albedo = calculateSpecularAlbedo(path, form)
-    #mixed_albedo = calculateMixedAlbedo(path, form)
-    #diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
+    vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
+    specular_albedo = calculateSpecularAlbedo(path, form)
+    mixed_albedo = calculateMixedAlbedo(path, form)
+    diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
-    #mixed_normal = calculateMixedNormals(path, form)
+    mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form)
-    #specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
+    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
 
-    #filtered_normal = HPF(specular_normal)
-    #syn = synthesize(diffuse_normal, filtered_normal)
+    filtered_normal = HPF(specular_normal)
+    syn = synthesize(diffuse_normal, filtered_normal)
