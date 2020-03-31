@@ -1,3 +1,6 @@
 facedemo-win32/
 lightstage/
 venv
+.vscode/
+temp/
+result_images/

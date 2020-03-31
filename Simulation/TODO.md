@@ -14,3 +14,15 @@ It consists of 3 parts.
 - Testing for various lighting condition
 
 - making New Image for scaled face. & format also png & hdr.
+
+- other frames (devebec, gosh, ... )
+- camera & light & frame object implementation
+- camera & light parameter setting
+- object option (shading, texture, ... )
+- specular/diffuse(subsurface scattering) separation
+- animation (not necessary because we just obtain rendered pictures, but for synchronization purposes using animation would be good.)
+- various rendering engine
+
+- light source visibility
+- emulating polarizers on simulation
+- Geometry alignment using normals (how to mix specular, diffuse normals?)
