@@ -71,7 +71,7 @@ def displaceCamera(cameraList) :
     for i, camera in enumerate(cameraList) :
         bpy.ops.object.camera_add(location=camera['location'])
         curr = bpy.context.object
-        curr.data.sensor_width = 50
+        curr.data.sensor_width = 25
         getRotation(curr)
         curr.name = "camera"+str(i)
 

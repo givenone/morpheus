@@ -29,7 +29,7 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects(all = True)
-    util.setting()
+    #util.setting()
     
     # Configuration
     frame = "models/dome/ico_3.obj"
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         print("Light Displacement Done")
         
-        blender.rendering.render(output_path, pattern_name)
+        #blender.rendering.render(output_path, pattern_name)
         print(pattern_name, "rendering done")
              
     print("Rendering Done")
@@ -70,8 +70,9 @@ if __name__ == "__main__":
     util.save_configuration("config.txt")  # Saving Configuration Details   
 
     # Genearte Geometry Details
-    (w, h) = geometry.depth.getDistanceMap(1, 1, output_path, "dist")
-    geometry.pointcloud.generate_pointcloud()
-    print("Generated Point Cloud")
+    (w, h) = geometry.depth.getDistanceMap(2160, 3840, output_path, "dist")
+    print(w,h)
+    #geometry.pointcloud.generate_pointcloud()
+    #print("Generated Point Cloud")
 
     # Reconstruction   
