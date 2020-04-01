@@ -36,9 +36,9 @@ def plot(image) :
         plt.imshow(im, cmap='gray', vmin=0, vmax=100)
         plt.show()
 
-def save(path, format, image) :
+def save(path, form, image) :
 
-    cv.imwrite(path+format, image)
+    cv.imwrite(path+form, image)
     return
 
 def rotation_matrix(axis, theta):
@@ -133,7 +133,7 @@ def calculateDiffuseAlbedo(mixed, specular) :
     
     print("Diffuse Albedo Done")
 
-    save("output/results" + date + "/diffuse_albedo", ".hdr", out_img)
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/diffuse_albedo", ".hdr", out_img)
     return out_img
 
 def calculateSpecularAlbedo(path, form) :
@@ -191,7 +191,7 @@ def calculateSpecularAlbedo(path, form) :
     cv.imwrite("specular_albedo.hdr", specular_median);
     print("Specular Albedo Done")  
 
-    save("output/results" + date + "/specular_albedo", ".hdr", specular_median)
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_albedo", ".hdr", specular_median)
     return specular_median   
 
 
@@ -285,7 +285,7 @@ def calculateDiffuseNormals(path, form):
 
     print("Diffuse Normal Done")  
     plot(encodedImage)
-    save("output/results" + date + "/diffuse_normal", ".png", encodedImage)
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/diffuse_normal", ".png", encodedImage)
     return encodedImage
 
 def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
@@ -313,7 +313,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     
     print("Speuclar Normal Done")
     plot(normal)
-    save("output/results" + date + "/specular_normal", ".png", normal)
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_normal", ".png", normal)
     return normal
 
 
@@ -329,20 +329,20 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
                    [-1, -1, -1, -1, -1]])
     
     filtered_normal = cv.filter2D(normal, -1, kernel)
- 
+    
     height, width, _ = normal.shape
 
     for h in range(height):
         normalize(filtered_normal[h], copy=False)
 
 
-    blur = cv.GaussianBlur(normal, (333, 333), 0)
+    blur = cv.GaussianBlur(normal, (501, 501), 0)
     filtered_normal = cv.subtract(normal, blur)
-
+   
 
     print("High Pass Filter Done")
     plot(filtered_normal)
-    save("output/results" + date + "/syn_specular_normal", ".png" , filtered_normal)
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/syn_specular_normal", ".png" , filtered_normal)
     return filtered_normal
 
 def synthesize(diffuse_normal, filtered_normal) :
@@ -376,7 +376,8 @@ if __name__ == "__main__":
     except IOError : 
         vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
     '''
-    vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005, sensor = (0.025, ))
+    cv.imwrite("/home/givenone/morpheus/photogeometric/Simulation/output/s.png", np.zeros( (10,10) ))
+    vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" , focalLength = 0.005, sensor = (0.025, 0.024))
     specular_albedo = calculateSpecularAlbedo(path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
