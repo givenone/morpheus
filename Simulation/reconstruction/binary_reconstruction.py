@@ -38,8 +38,16 @@ def plot(image) :
 
 def save(path, form, image) :
 
-    cv.imwrite(path+form, image)
+    image = (image + 1.0) / 2.0
+    image *= 255.0
+    im = Image.fromarray(image.astype('uint8'))
+    im.save(path+form)
     return
+
+def save_exr(path, form, image) :
+    return
+    cv.imwrite(path+form, image)
+
 
 def rotation_matrix(axis, theta):
     """
@@ -61,12 +69,12 @@ def rotation_matrix(axis, theta):
                      [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 def get_D(image) : 
-    e1 = np.array([1.0, 1.0, 1.0]).astype('float64')
+    e1 = np.array([1.0, 1.0, 1.0]).astype('float32')
     e1 = e1 / np.linalg.norm(e1)
 
     height, width, channel = image.shape
 
-    D = np.zeros((height, width)).astype('float64')
+    D = np.zeros((height, width)).astype('float32')
 
     axis = np.cross(image, e1)   # sin theta?  
     D=np.linalg.norm(axis, axis = 2)
@@ -109,16 +117,18 @@ def calculateMixedAlbedo(path, form) :
     name = path + "w" + form
     img = cv.imread(name, 3) #BGR
     arr = array(img)
-    arr = arr.astype('float64')
+    arr = arr.astype('float32')
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
-    '''
     blue = img[..., 0]
+    '''
     green = img[..., 1]
     red = img[..., 2]
     '''
     
     print("Mixed Albedo Done")
+    print(type(blue), blue)
+    cv.imwrite('mixed_albedo.hdr', blue)
     #save("output/results" + date + "/mixed_albedo", ".hdr", arr)
     return img # BGR Image
 
@@ -126,17 +136,18 @@ def calculateMixedAlbedo(path, form) :
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
-    out_img = np.zeros_like(mixed).astype('float64')
+    out_img = np.zeros_like(mixed).astype('float32')
     out_img[...,0] = np.subtract(mixed[...,0], specular)
     out_img[...,1] = np.subtract(mixed[...,1], specular)
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-
-    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/diffuse_albedo", ".hdr", out_img)
+    print("da", out_img.shape, type(out_img))
+    cv.imwrite('diffuse_albedo.hdr', out_img)
+    save_exr("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/diffuse_albedo", ".exr", out_img)
     return out_img
 
-def calculateSpecularAlbedo(path, form) :
+def calculateSpecularAlbedo(viewing_direction, path, form) :
 
     prefix = path
     suffix = form
@@ -152,46 +163,89 @@ def calculateSpecularAlbedo(path, form) :
         # H S V Separation
         img = cv.imread(i, 3)
         arr = array(img)
-        images.append(arr.astype('float64'))
+        images.append(arr.astype('float32'))
         
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
         h, s, v = cv.split(hsv_img)
         
         arr = array(h)
-        H.append(arr.astype('float64'))
+        H.append(arr.astype('float32'))
         arr = array(s)
-        S.append(arr.astype('float64'))
+        S.append(arr.astype('float32'))
         arr = array(v)
-        V.append(arr.astype('float64'))
+        V.append(arr.astype('float32'))
 
 
     height, width, _ = images[0].shape
     
     specular_albedo = [None,None,None]
 
+    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+
+    v = np.array(viewing_direction)
+    v = -v.astype('float32')
+    for h in range(height):
+        normalize(v[h], copy=False)  #normalizing
+
     for i in range(3) : 
         h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i], V[2*i], H[2*i+1], S[2*i+1], V[2*i+1] 
         
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
-        c_g= np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
+        c_g=  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
-        
-        t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g, t)
 
+       
+
+        fresnel = np.full( (height, width, 3), light[2*i])
+        fresnel = fresnel.astype('float32')
+        fresnel_c = np.full( (height, width, 3), light[2*i+1])
+        fresnel_c = fresnel_c.astype('float32')
+        
+        E = v + fresnel
+        for h in range(height):
+            normalize(E[h], copy=False)  #normalizing
+
+        E_c = v + fresnel_c
+        for h in range(height):
+            normalize(E_c[h], copy=False)  #normalizing
+
+        cos_g = np.einsum('abx, abx -> ab', v, E)
+        cos_c = np.einsum('abx, abx -> ab', v, E_c)  
+        
+        print(cos_g, cos_c)
+        f = np.full( (height,width), 1)
+        f = f.astype('float32')
+        f = f - cos_g
+        #f = f ** 4
+    
+        f_c = np.full( (height,width), 1)
+        f_c = f.astype('float32')
+        f_c = f_c - cos_c
+        
+        #f_c = f_c ** 4
+
+        cv.imwrite("map{}.hdr".format(2*i), f)
+        cv.imwrite("map{}.hdr".format(2*i+1), f_c)
+
+        t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
+        spec = np.subtract(v_g, t)    
         t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
         spec_c = np.subtract(v_c, t)
-        
+        spec = spec * f
+        spec_c = spec * f_c
         specular_albedo[i] = np.maximum(spec, spec_c)
+
+    specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
 
     # TODO :: Fresnel Gain Modulation
 
-    specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
-    cv.imwrite("specular_albedo.hdr", specular_median);
-    print("Specular Albedo Done")  
 
-    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_albedo", ".hdr", specular_median)
+
+    cv.imwrite('specular_albedo.hdr', specular_median)
+    print(specular_median.shape, type(specular_median))
+    print("Specular Albedo Done")  
+    save_exr("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_albedo", ".exr", specular_median)
     return specular_median   
 
 
@@ -208,7 +262,7 @@ def calculateMixedNormals(path, form):
     for i in names:
         img = cv.imread(i, 3)
         arr = array(img)
-        images.append(arr.astype('float64'))
+        images.append(arr.astype('float32'))
 
     height, width, _ = images[0].shape
 
@@ -216,7 +270,7 @@ def calculateMixedNormals(path, form):
     N_y = (images[2] - images[3])
     N_z = (images[4] - images[5])
 
-    encodedImage = np.empty_like(N_x).astype('float64')
+    encodedImage = np.empty_like(N_x).astype('float32')
     encodedImage[...,0] = N_x[..., 0] #Mixed Normal -> blue component
     encodedImage[...,1] = N_y[..., 0]
     encodedImage[...,2] = N_z[..., 0]
@@ -225,7 +279,7 @@ def calculateMixedNormals(path, form):
             normalize(encodedImage[h], copy=False)  #normalizing
     
     print("Mixed Normal Done")
-    
+    save("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/mixed_normal", ".png", encodedImage)
     return encodedImage
 
 def calculateDiffuseNormals(path, form):
@@ -241,7 +295,7 @@ def calculateDiffuseNormals(path, form):
     for i in names:
         img = cv.imread(i, 3)
         arr = array(img)
-        images.append(arr.astype('float64'))
+        images.append(arr.astype('float32'))
 
     height, width, _ = images[0].shape
 
@@ -276,7 +330,7 @@ def calculateDiffuseNormals(path, form):
         G_C = get_D(images[2*i + 1])
         N.append(G-G_C)
 
-    encodedImage = np.empty_like(images[0]).astype('float64')
+    encodedImage = np.empty_like(images[0]).astype('float32')
     encodedImage[..., 0] = N[0] # X
     encodedImage[..., 1] = N[1] # Y
     encodedImage[..., 2] = N[2] # Z
@@ -295,7 +349,7 @@ def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
     d_y = np.multiply(diffuse_normal[..., 1], alpha)
     d_z = np.multiply(diffuse_normal[..., 2], alpha)
-    alphadiffuse = np.empty_like(diffuse_normal).astype('float64')
+    alphadiffuse = np.empty_like(diffuse_normal).astype('float32')
     alphadiffuse[..., 0] = d_x
     alphadiffuse[..., 1] = d_y
     alphadiffuse[..., 2] = d_z
@@ -378,7 +432,7 @@ if __name__ == "__main__":
     '''
     cv.imwrite("/home/givenone/morpheus/photogeometric/Simulation/output/s.png", np.zeros( (10,10) ))
     vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" , focalLength = 0.005, sensor = (0.025, 0.024))
-    specular_albedo = calculateSpecularAlbedo(path, form)
+    specular_albedo = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
