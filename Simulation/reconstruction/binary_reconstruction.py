@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import geometry.pointcloud as pointcloud
 import concurrent.futures
 
-date = "0403"
+date = "0403_NEWfresnel"
 
 def plot(image) :
     #Input : np array
@@ -226,16 +226,18 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         f = f.astype('float32')
         f = f - cos_g
         
-        f = f ** 5
+        #f = f ** 5
     
         f_c = np.full( (height,width), 1)
         f_c = f_c.astype('float32')
         f_c = f_c - cos_c
         
-        f_c = f_c ** 5
-        
-        spec = spec + (1.0 - spec) * f
-        spec_c = spec_c + (1.0 - spec_c) * f_c
+        #f_c = f_c ** 5
+
+        spec = spec * f
+        spec_c = spec_c * f_c
+        #spec = spec + (1.0 - spec) * f
+        #spec_c = spec_c + (1.0 - spec_c) * f_c
         specular_albedo_frsenel[i] = np.maximum(spec, spec_c)
 
         
@@ -249,7 +251,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     
     print("Specular Albedo Done")  
     save_exr("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_albedo", ".exr", specular_median)
-    return specular_median_fresnel   
+    return specular_median_fresnel 
 
 
 def calculateMixedNormals(path, form):
