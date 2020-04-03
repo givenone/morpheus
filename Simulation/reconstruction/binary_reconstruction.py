@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import geometry.pointcloud as pointcloud
 import concurrent.futures
 
-date = "0401"
+date = "0403"
 
 def plot(image) :
     #Input : np array
@@ -127,7 +127,6 @@ def calculateMixedAlbedo(path, form) :
     '''
     
     print("Mixed Albedo Done")
-    print(type(blue), blue)
     cv.imwrite('mixed_albedo.hdr', blue)
     #save("output/results" + date + "/mixed_albedo", ".hdr", arr)
     return img # BGR Image
@@ -142,7 +141,6 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-    print("da", out_img.shape, type(out_img))
     cv.imwrite('diffuse_albedo.hdr', out_img)
     save_exr("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/diffuse_albedo", ".exr", out_img)
     return out_img
@@ -178,7 +176,8 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
 
     height, width, _ = images[0].shape
     
-    specular_albedo = [None,None,None]
+    specular_albedo = [None,None,None] #original
+    specular_albedo_frsenel = [None,None,None] #frsenel modulated
 
     light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
 
@@ -190,15 +189,25 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     for i in range(3) : 
         h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i], V[2*i], H[2*i+1], S[2*i+1], V[2*i+1] 
         
+        # original albedo separation
+
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
         c_g=  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
 
-       
+        t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
+        spec = np.subtract(v_g, t)    
+        t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
+        spec_c = np.subtract(v_c, t)
+        
+        specular_albedo[i] = np.maximum(spec, spec_c)
 
+        # fresnel
+        
         fresnel = np.full( (height, width, 3), light[2*i])
         fresnel = fresnel.astype('float32')
+
         fresnel_c = np.full( (height, width, 3), light[2*i+1])
         fresnel_c = fresnel_c.astype('float32')
         
@@ -213,40 +222,34 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         cos_g = np.einsum('abx, abx -> ab', v, E)
         cos_c = np.einsum('abx, abx -> ab', v, E_c)  
         
-        print(cos_g, cos_c)
         f = np.full( (height,width), 1)
         f = f.astype('float32')
         f = f - cos_g
-        #f = f ** 4
+        
+        f = f ** 5
     
         f_c = np.full( (height,width), 1)
-        f_c = f.astype('float32')
+        f_c = f_c.astype('float32')
         f_c = f_c - cos_c
         
-        #f_c = f_c ** 4
+        f_c = f_c ** 5
+        
+        spec = spec + (1.0 - spec) * f
+        spec_c = spec_c + (1.0 - spec_c) * f_c
+        specular_albedo_frsenel[i] = np.maximum(spec, spec_c)
 
-        cv.imwrite("map{}.hdr".format(2*i), f)
-        cv.imwrite("map{}.hdr".format(2*i+1), f_c)
+        
 
-        t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g, t)    
-        t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
-        spec_c = np.subtract(v_c, t)
-        spec = spec * f
-        spec_c = spec * f_c
-        specular_albedo[i] = np.maximum(spec, spec_c)
-
-    specular_median = np.median(specular_albedo, axis = 0) # median value of rgb.
-
-    # TODO :: Fresnel Gain Modulation
-
+    specular_median = np.median(specular_albedo, axis = 0) # median value of xyz.
+    specular_median_fresnel = np.median(specular_albedo_frsenel, axis = 0) # median value of xyz.
 
 
     cv.imwrite('specular_albedo.hdr', specular_median)
-    print(specular_median.shape, type(specular_median))
+    cv.imwrite('specular_albedo_fresnel.hdr', specular_median_fresnel)
+    
     print("Specular Albedo Done")  
     save_exr("/home/givenone/morpheus/photogeometric/Simulation/output/" + date + "/specular_albedo", ".exr", specular_median)
-    return specular_median   
+    return specular_median_fresnel   
 
 
 def calculateMixedNormals(path, form):
@@ -430,7 +433,6 @@ if __name__ == "__main__":
     except IOError : 
         vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005)
     '''
-    cv.imwrite("/home/givenone/morpheus/photogeometric/Simulation/output/s.png", np.zeros( (10,10) ))
     vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" , focalLength = 0.005, sensor = (0.025, 0.024))
     specular_albedo = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
