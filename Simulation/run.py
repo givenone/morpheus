@@ -21,8 +21,8 @@ def get_input_obj_path() -> str:
 
 if __name__ == "__main__":
     # Args
-    #output_dir_path = get_output_file_path()
-    #input_file_path = get_input_obj_path()
+    output_dir_path = get_output_file_path()
+    form = get_input_obj_path()
 
     # Setting
     scene = bpy.context.scene
@@ -52,6 +52,8 @@ if __name__ == "__main__":
         blender.displaceLight(light[1])
         #blender.displaceObject(input_file_path)
         print("Light Displacement Done")
-        blender.rendering.render("C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output"+"\\cycle_test_revised_6_hdr", pattern_name)
+        
+        blender.rendering.render(output_dir_path, pattern_name, form)
+
         print(pattern_name, "rendering done")      
         #blender.rende1q2wert67y0p-[]74,.

@@ -2,17 +2,17 @@ import bpy
 import os
 
 
-def render(dir_path, filename) :
+def render(dir_path, filename, form) :
     path_dir = bpy.context.scene.render.filepath #save for restore
     scene = bpy.context.scene
 
     # resolution : 4K
-    scene.render.resolution_x = 4096
-    scene.render.resolution_y = 2160
+    scene.render.resolution_x = 2160#4096
+    scene.render.resolution_y = 3840#2160
 
     # HDRI Rendering
 
-    bpy.context.scene.render.image_settings.file_format = "HDR"
+    bpy.context.scene.render.image_settings.file_format = form
     
     for cam in [obj for obj in bpy.data.objects if obj.type == 'CAMERA']:
         

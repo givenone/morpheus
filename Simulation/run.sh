@@ -10,10 +10,11 @@ if ${TEST}; then
 fi
 
 # Export path
-export PATH=$PATH:$1
+#export PATH=$PATH:$1
 
 # Create the output directory
-mkdir -p ${OUT_DIR}
+#mkdir -p ${OUT_DIR}
 
 # Run the scripts
-blender --background --python ./run.py --render-frame 1 -- ${OUT_DIR}/01_cube_ ${RESOLUTION} 
+blender --background --python ./run.py --render-frame 1 -- "C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output\\cycle_test_revised_8_hdr" "HDR"
+blender --background --python ./run.py --render-frame 1 -- "C:\\Users\\user\\Desktop\\lightstage\\morpheus\\Simulation\\output\\cycle_test_revised_9_png" "PNG"
