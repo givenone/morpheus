@@ -8,3 +8,5 @@
 
 - light source visibility
 - emulating polarizers on simulation
+- Geometry alignment using normals (how to mix specular, diffuse normals?)
+
