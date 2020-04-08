@@ -476,11 +476,14 @@ static int isanumber(const char *c, float *s) {
     else return 0;
 }
 
+// SEE optimize grid & optimize mesh functions
+
 int main(int argc,char *argv[]) {
     if (argc < 3) 
         usage_error(argv[0]);
     const char *filename = argv[1];
-    TriMesh *themesh = TriMesh::read(filename);
+    TriMesh *themesh = TriMesh::read(filename); // "Measured" mesh as an infile
+    // It uses TriMesh Library for mesh manipulation
     if (!themesh) 
         usage_error(argv[0]);
     if (themesh->vertices.size() != themesh->normals.size())
@@ -492,6 +495,10 @@ int main(int argc,char *argv[]) {
     t_fc fc; 
     float lambda = 0.1, blambda = 0.1;
     bool optimized = false;
+
+    // read measured normal & point cloud and generated new optimized mesh (point + normal)
+
+
     for (int i = 2; i < argc; i++) {
         if (!strcmp(argv[i], "-noopt")) {
             no_optimize = true;
@@ -508,7 +515,8 @@ int main(int argc,char *argv[]) {
                 usage_error(argv[0], "-fixnorm requires a parameter "
                     "in the form: s[:n] (i.e. %%f[:%%d])");
             fix_normals(themesh, s, n);
-
+            // After smoothing and merging, the corrected normal field contains 
+            // the low-frequencies from the geometry and the high-frequencies from the measured normals.
         } else if (!strcmp(argv[i], "-smooth")) {
             i++;
             float s = 1;
@@ -517,6 +525,8 @@ int main(int argc,char *argv[]) {
                 usage_error(argv[0], "-fixnorm requires a parameter "
                     "in the form: s[:n] (i.e. %%f[:%%d])");
             smooth(themesh, s, n);
+            // smoothing the measured positions to eliminate high - frequency noise from the geometry prior to optimization.
+
         } else if (!strcmp(argv[i], "-fc")) {
             i++;
             if (!(i < argc))
@@ -529,6 +539,10 @@ int main(int argc,char *argv[]) {
             }
             fclose(fp);
             has_intrinsics = true;
+
+            // read intrinsic parameter
+            // numbers are such that the ray through a point projecting to pixel (x, y) is given by [-(x-cx)Z/fx, -(y-cy)Z/fy, Z]
+
         } else if (!strcmp(argv[i], "-lambda")) {
             i++;
             if (!(i < argc && isanumber(argv[i], &lambda)))
@@ -551,6 +565,7 @@ int main(int argc,char *argv[]) {
                     usage_error(argv[0], "fc requires a range grid");
                 optimize_grid(themesh, lambda, blambda, fc);
             } else optimize_mesh(themesh, lambda, blambda);
+            // Geometry optimization executed here !
         } else if (i == argc - 1 &&
                (argv[i][0] != '-' || argv[i][1] == '\0')) {
             if (!has_blambda) 
