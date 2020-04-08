@@ -1,2 +1,0 @@
-camera : https://docs.blender.org/api/current/bpy.types.Camera.html
-light : https://docs.blender.org/api/current/bpy.types.Light.html

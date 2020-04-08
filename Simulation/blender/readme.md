@@ -10,3 +10,4 @@
 
 - rendering.py : codes for rendering. You may change several settings including resolutions, sensor size, and so on for rendering. Used Cycles in blender.
 
+TODO :: need to create a configuration file

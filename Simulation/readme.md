@@ -1,4 +1,9 @@
-It consists of 3 parts.
+# Simulation using blender
+
+camera : https://docs.blender.org/api/current/bpy.types.Camera.html
+light : https://docs.blender.org/api/current/bpy.types.Light.html
+
+This directory comprises as follows.
 
 1. preprocessing
    * Take coordinates and intensities of lights , and lighting patterns.
@@ -8,7 +13,7 @@ It consists of 3 parts.
    * Get photos from designated viewpoints
 3. reconstruction
    * make normals, albedos. Also merge with 3d geometry to make a complete 3D viewable file.
-
+4. geometry
 
 - Need to implement command line program (using package management,... to automatically run all parts)
 - Testing for various lighting condition
