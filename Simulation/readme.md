@@ -15,11 +15,11 @@ This directory comprises as follows.
    * make normals, albedos. Also merge with 3d geometry to make a complete 3D viewable file.
 4. geometry
 
+### Before Run, You should set configuration file path in run.py & blender/blender.py
+
 - Need to implement command line program (using package management,... to automatically run all parts)
 - Testing for various lighting condition
-
 - making New Image for scaled face. & format also png & hdr.
-
 - other frames (devebec, gosh, ... )
 - camera & light & frame object implementation
 - camera & light parameter setting

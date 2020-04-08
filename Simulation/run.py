@@ -10,6 +10,7 @@ import preprocessing
 import blender
 import geometry
 import configparser
+import ast
 
 option = "BINARY"
 
@@ -38,13 +39,13 @@ if __name__ == "__main__":
     #util.setting()
     
     # Configuration
-    frame = config['frame']#"models/dome/ico_3.obj"
-    emily = config['emily']#"/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
-    emily_name = config['emily_name']#"Emily_2_1"
-    frame_scale = config['frame_scale']#5
-    room_scale = config['room_scale']#10
-    camera_location = config['camera_location']#[0,-4.9,0]
-    output_path = config['output_path']#"/home/givenone/morpheus/photogeometric/Simulation/output"
+    frame = config['frame']
+    emily = config['emily']
+    emily_name = config['emily_name']
+    frame_scale = int(config['frame_scale'])
+    room_scale = int(config['room_scale'])
+    camera_location = ast.literal_eval(config['camera_location'])
+    output_path = config['output_path']
 
     vertices = preprocessing.read_vertices_objects(frame)
     faces = preprocessing.read_faces_objects(frame)
@@ -58,13 +59,13 @@ if __name__ == "__main__":
     
     # Displace Object
     blender.displaceBlenderObject(emily, emily_name)
-
+    
     print("Done preprocessing")
 
     for light in lights :        
         util.clean_objects() # Remove all lights
         pattern_name = light[0] # name of pattern.
-        blender.displaceLight(light[1])
+        blender.displaceLight(light[1], frame_scale)
 
         print("Light Displacement Done")
         

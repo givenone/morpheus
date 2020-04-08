@@ -1,56 +1,30 @@
 # blender python module
 import bpy
-
-"""
-def displaceGeomtry(pathToOBJ, pathForExport):
-    scene = bpy.context.screen.scene
-    for object_ in scene.objects:
-        bpy.data.objects.remove(object_, True)
-
-    imported_object = bpy.ops.import_scene.obj(filepath=pathToOBJ)
-    obj_object = bpy.context.selected_objects[0]
-    bpy.context.scene.objects.active = obj_object
-
-    for item in bpy.data.materials:
-        #Enable "use_shadeless"
-        item.use_shadeless = True
-
-    subd = obj_object.modifiers.new("subd", type='SUBSURF')
-    # # subd.levels = 2
-    bpy.ops.object.modifier_apply(modifier=subd.name)
-
-    tex = obj_object.active_material.active_texture
-    dispMod = obj_object.modifiers.new("Displace", type='DISPLACE')
-    dispMod.texture = tex
-    dispMod.texture_coords = "UV"
-    dispMod.strength = -0.002
-    bpy.ops.object.modifier_apply(modifier=dispMod.name)
-
-    bpy.ops.export_scene.obj(filepath=pathForExport)
-
-if __name__ == "__main__":
-    displaceGeomtry("forBlender.obj",
-    "fromBlender.obj")
-"""
 from math import radians, atan, sqrt, acos
-import os
+import os, sys
+import configparser
+import ast
 
-def displaceLight(lightList):
+configuration = configparser.ConfigParser()
+configuration.read('/home/givenone/morpheus/photogeometric/Simulation/blender/simulation.conf')
+configuration = configuration['simulation']
+
+def displaceLight(lightList, frame_scale):
     # lightList : [intensity, x, y, z]
 
     # set background light strength (ambient light)
-    bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = 0.01
+    bpy.data.worlds['World'].node_tree.nodes['Background'].inputs[1].default_value = float(configuration['background'])
 
     for i, light in enumerate(lightList) :
         # make light data
         light_data = bpy.data.lights.new(name="light_{}".format(i), type='SPOT')
-        light_data.spot_size = radians(30)
-        light_data.spot_blend = 0.3
-        light_data.specular_factor = 0.5 #0.5 ?
+        light_data.spot_size = radians(int(configuration['spot_size']))
+        light_data.spot_blend = float(configuration['blend'])
+        light_data.specular_factor = float(configuration['specular_factor'])
         light_data.energy = light[0]
         light_data.use_shadow = True
         light_data.use_custom_distance = True
-        light_data.cutoff_distance = 100
+        light_data.cutoff_distance = int(configuration['cutoff_distance'])
         
         # make light object
         light_object = bpy.data.objects.new(name="light_{}".format(i), object_data = light_data)
@@ -58,7 +32,7 @@ def displaceLight(lightList):
         bpy.context.collection.objects.link(light_object)
 
         #bpy.context.view_layer.objects.active = light_objects
-        scale = 5
+        scale = frame_scale
         light_object.location = [scale * x for x in light[1:]]
         getRotation(light_object)
         # TODO :: setup more light properties
@@ -71,7 +45,7 @@ def displaceCamera(cameraList) :
     for i, camera in enumerate(cameraList) :
         bpy.ops.object.camera_add(location=camera['location'])
         curr = bpy.context.object
-        curr.data.sensor_width = 25
+        curr.data.sensor_width = int(configuration['sensor_width'])
         getRotation(curr)
         curr.name = "camera"+str(i)
 
@@ -84,7 +58,7 @@ def displaceObject(file_path) :
     obj = bpy.data.objects[file_name] #object name is descripted in .obj file "o" if not, same as file name.
     
     #TODO :: align at center
-    obj.location = (0, 0, 0)
+    obj.location = ast.literal_eval(configuration['obj_location'])
 
     (x,y,z) = obj.dimensions
     scale = sqrt(pow(x,2) + pow(y,2) + pow(z,2))
@@ -98,7 +72,7 @@ def displaceBlenderObject(file_path, obj_name) :
     obj = bpy.data.objects[obj_name]
 
     #TODO :: align at center
-    obj.location = (0, 0, 0)
+    obj.location = ast.literal_eval(configuration['obj_location'])
     (x,y,z) = obj.dimensions
     scale = sqrt(pow(x,2) + pow(y,2) + pow(z,2))
     scale = max(x, y, z)
@@ -154,10 +128,10 @@ def displaceFrame(vertices, edges, scale) :
     #link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
 
     x = nodes.get('Principled BSDF')
-    x.inputs['Base Color'].default_value = [0.1, 0.1, 0.1, 1]
-    x.inputs['Specular'].default_value = 0.3
-    x.inputs['Roughness'].default_value = 0.3
-    x.inputs['Metallic'].default_value = 0.99
+    x.inputs['Base Color'].default_value = ast.literal_eval(configuration['f_Base_Color'])
+    x.inputs['Specular'].default_value = float(configuration['f_Specular'])
+    x.inputs['Roughness'].default_value = float(configuration['f_Roughness'])
+    x.inputs['Metallic'].default_value = float(configuration['f_Metallic'])
     bpy.data.objects["Frame"].active_material = bpy.data.materials[name]
     
  
@@ -173,17 +147,12 @@ def displaceRoom(scale) :
     nodes = material.node_tree.nodes
     links = material.node_tree.links
 
-    #output = nodes.new( type = 'ShaderNodeOutputMaterial' )
-    #diffuse = nodes.new( type = 'ShaderNodeBsdfDiffuse' )
-    
-    #link = links.new( diffuse.outputs['BSDF'], output.inputs['Surface'] )
-
     x = nodes.get('Principled BSDF')
-    x.inputs['Base Color'].default_value = [0.004, 0.004, 0.004, 1]
-    x.inputs['Specular'].default_value = 0.01
-    x.inputs['Roughness'].default_value = 0.8
-    x.inputs['Metallic'].default_value = 0.1
-    x.inputs['Sheen'].default_value = 0.3
+    x.inputs['Base Color'].default_value = ast.literal_eval(configuration['r_Base_Color'])
+    x.inputs['Specular'].default_value = float(configuration['r_Specular'])
+    x.inputs['Roughness'].default_value = float(configuration['r_Roughness'])
+    x.inputs['Metallic'].default_value = float(configuration['r_Metallic'])
+    x.inputs['Sheen'].default_value = float(configuration['r_Sheen'])
     cube.active_material = bpy.data.materials[name]
 
 def getRotation(blender_object) :
