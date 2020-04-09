@@ -72,7 +72,6 @@ def get_D(image, diffuse_albedo) :
     D = np.zeros((height, width)).astype('float32')
     D = np.einsum('abx, abx -> ab', image, diffuse_albedo)
 
-    print(image[1350][1070], D[1350][1070])
     return D
 
     
@@ -213,13 +212,13 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     specular_median_fresnel = np.median(specular_albedo_frsenel, axis = 0) # median value of xyz.
 
 
-    #plot(specular_median_fresnel)
-    plot(specular_median)
+    plot(specular_median_fresnel)
+    #plot(specular_median)
     #cv.imwrite('specular_albedo.png', specular_median)
     #cv.imwrite('specular_albedo_fresnel.png', specular_median_fresnel)
     
     print("Specular Albedo Done")  
-    return specular_median
+    return specular_median, specular_median_fresnel
 
 
 def calculateMixedNormals(path, form):
@@ -291,9 +290,10 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
     plot(encodedImage)
     return encodedImage
 
-def calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
+def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
     
-    alpha = np.divide(diffuse_albedo[...,0], mixed_albedo[...,0], out=np.zeros_like(mixed_albedo[...,0]), where=mixed_albedo[...,0]!=0)
+    su = specular_albedo + diffuse_albedo[...,0]
+    alpha = np.divide(diffuse_albedo[...,0], su, out=np.zeros_like(su), where=su!=0)
 
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
     d_y = np.multiply(diffuse_normal[..., 1], alpha)
@@ -347,7 +347,7 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
     return filtered_normal
 
 def synthesize(diffuse_normal, filtered_normal) :
-    syn = np.add(diffuse_normal, filtered_normal)
+    syn = np.add(diffuse_normal, filtered_normal * 0.4)
 
     height, width, _ = syn.shape
 
@@ -363,13 +363,13 @@ if __name__ == "__main__":
     form = ".png"
 
     vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" , focalLength = 0.005, sensor = (0.025, 0.024))
-    specular_albedo = calculateSpecularAlbedo(vd, path, form)
+    specular_albedo, specular_albedo_fresnel = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
-    specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
+    specular_normal = calculateSpecularNormals(diffuse_albedo, specular_albedo_fresnel, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
