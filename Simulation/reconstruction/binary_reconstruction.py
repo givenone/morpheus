@@ -32,7 +32,7 @@ def plot(image) :
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
-        plt.imshow(im, cmap='gray', vmin=0, vmax=100)
+        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
         plt.show()
 
 def save(path, form, image) :
@@ -62,48 +62,18 @@ def rotation_matrix(axis, theta):
                      [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
                      [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
-def get_D(image) : 
-    e1 = np.array([1.0, 1.0, 1.0]).astype('float32')
-    e1 = e1 / np.linalg.norm(e1)
-
+def get_D(image, diffuse_albedo) : 
     height, width, channel = image.shape
 
+    z = np.copy(diffuse_albedo)
+    for h in range(height):
+        normalize(diffuse_albedo[h], copy=False)  #normalizing
+
     D = np.zeros((height, width)).astype('float32')
+    D = np.einsum('abx, abx -> ab', image, diffuse_albedo)
 
-    axis = np.cross(image, e1)   # sin theta?  
-    D=np.linalg.norm(axis, axis = 2)
+    print(image[1350][1070], D[1350][1070])
     return D
-def get_rot_mat(rot_v, unit=None):
-    '''
-    takes a vector and returns the rotation matrix required to align the unit vector(2nd arg) to it
-    '''
-    if unit is None:
-        unit = [1.0, 0.0, 0.0]
-
-    rot_v = rot_v/np.linalg.norm(rot_v)
-    uvw = np.cross(rot_v, unit) #axis of rotation
-
-    rcos = np.dot(rot_v, unit) #cos by dot product
-    rsin = np.linalg.norm(uvw) #sin by magnitude of cross product
-
-    #normalize and unpack axis
-    if not np.isclose(rsin, 0):
-        uvw = uvw/rsin
-    u, v, w = uvw
-
-    # Compute rotation matrix
-    # Artsiom: I haven't checked that this is correct
-    R = (
-        rcos * np.eye(3) +
-        rsin * np.array([
-            [ 0, -w,  v],
-            [ w,  0, -u],
-            [-v,  u,  0]
-        ]) +
-        (1.0 - rcos) * uvw[:,None] * uvw[None,:]
-    )
-
-    return R
 
     
 def calculateMixedAlbedo(path, form) :
@@ -115,14 +85,14 @@ def calculateMixedAlbedo(path, form) :
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
     blue = img[..., 0]
-    '''
     green = img[..., 1]
     red = img[..., 2]
-    '''
-    
     print("Mixed Albedo Done")
-    cv.imwrite('mixed_albedo.hdr', blue)
-    return img # BGR Image
+
+    plt.imshow(rgb_img)
+    plt.show()
+    #cv.imwrite('mixed_albedo.hdr', blue)
+    return arr # BGR Image
 
 
 
@@ -134,8 +104,11 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-    cv.imwrite('diffuse_albedo.hdr', out_img)
-    return out_img
+    
+    plt.imshow(cv.cvtColor(out_img.astype('uint8'), cv.COLOR_BGR2RGB))
+    plt.show()
+    #cv.imwrite('diffuse_albedo.hdr', out_img)
+    return out_img # BGR
 
 def calculateSpecularAlbedo(viewing_direction, path, form) :
 
@@ -154,7 +127,6 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         img = cv.imread(i, 3)
         arr = array(img)
         images.append(arr.astype('float32'))
-        
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
         h, s, v = cv.split(hsv_img)
         
@@ -171,7 +143,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     specular_albedo = [None,None,None] #original
     specular_albedo_frsenel = [None,None,None] #frsenel modulated
 
-    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
+    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, 1), (0, 0, -1)]
 
     v = np.array(viewing_direction)
     v = -v.astype('float32')
@@ -183,18 +155,26 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         
         # original albedo separation
 
+        coefficient = 60 # scale coefficient for albedo 
+
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
         c_g=  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g, t)    
-        t = np.divide(c_c, s_g, out=np.zeros_like(c_g), where=s_g!=0)
-        spec_c = np.subtract(v_c, t)
+        spec = np.subtract(v_g/100, t) * coefficient
+        t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
+        spec_c = np.subtract(v_c/100, t) * coefficient
         
         specular_albedo[i] = np.maximum(spec, spec_c)
-
+        """
+        print(images[2*i][680][1600], images[2*i+1][680][1600])
+        print(S[2*i][680][1600], S[2*i+1][680][1600])
+        print(V[2*i][680][1600], V[2*i+1][680][1600])
+        print(c_g[680][1600], c_c[680][1600])
+        print(spec[680][1600], spec_c[680][1600])
+        """
         # fresnel
         
         fresnel = np.full( (height, width, 3), light[2*i])
@@ -222,23 +202,24 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         f_c = f_c.astype('float32')
         f_c = f_c - cos_c
         
-        spec = spec * f
-        spec_c = spec_c * f_c
+        f_spec = spec * f
+        f_spec_c = spec_c * f_c
         #spec = spec + (1.0 - spec) * f
         #spec_c = spec_c + (1.0 - spec_c) * f_c
-        specular_albedo_frsenel[i] = np.maximum(spec, spec_c)
+        specular_albedo_frsenel[i] = np.maximum(f_spec, f_spec_c)
 
         
-
     specular_median = np.median(specular_albedo, axis = 0) # median value of xyz.
     specular_median_fresnel = np.median(specular_albedo_frsenel, axis = 0) # median value of xyz.
 
 
-    cv.imwrite('specular_albedo.hdr', specular_median)
-    cv.imwrite('specular_albedo_fresnel.hdr', specular_median_fresnel)
+    #plot(specular_median_fresnel)
+    plot(specular_median)
+    #cv.imwrite('specular_albedo.png', specular_median)
+    #cv.imwrite('specular_albedo_fresnel.png', specular_median_fresnel)
     
     print("Specular Albedo Done")  
-    return specular_median_fresnel 
+    return specular_median
 
 
 def calculateMixedNormals(path, form):
@@ -273,7 +254,7 @@ def calculateMixedNormals(path, form):
     print("Mixed Normal Done")
     return encodedImage
 
-def calculateDiffuseNormals(path, form):
+def calculateDiffuseNormals(path, form, diffuse_albedo):
     images = []
 
     prefix = path
@@ -294,40 +275,18 @@ def calculateDiffuseNormals(path, form):
     
     N = []
     for i in range(3) :
-        """
-        I_suv_g=np.zeros(images[i].shape)
-        I_suv_c=np.zeros(images[i].shape)
-        # m, n, 3 x 3, 3 -> m, n, 3
-        I_suv_g = np.einsum('mnr,rx->mnx', images[2*i], R)
-        I_suv_c = np.einsum('mnr,rx->mnx', images[2*i+1], R)
-    
-        # pure diffuse component
-        G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
-        G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
-        N.append(G-G_C)
-
-        print(images[2*i][850][1700], images[2*i+1][850][1700], I_suv_g[850][1700], I_suv_c[850][1700], (G-G_C)[850][1700])
-        """
-        """
-        R_g = get_inv_mat(images[2*i])
-        R_c = get_inv_mat(images[2*i + 1])
-        
-        I_suv_g = np.einsum("mnx, mnxy -> mny", images[2*i], R_g)
-        I_suv_c = np.einsum("mnx, mnxy -> mny", images[2*i+1], R_c)
-        G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
-        G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
-        """
-        G = get_D(images[2*i])
-        G_C = get_D(images[2*i + 1])
+        G = get_D(images[2*i], diffuse_albedo)
+        G_C = get_D(images[2*i + 1], diffuse_albedo)
         N.append(G-G_C)
 
     encodedImage = np.empty_like(images[0]).astype('float32')
     encodedImage[..., 0] = N[0] # X
     encodedImage[..., 1] = N[1] # Y
     encodedImage[..., 2] = N[2] # Z
+
     for h in range(height):
         normalize(encodedImage[h], copy=False)  #normalizing
-
+   
     print("Diffuse Normal Done")  
     plot(encodedImage)
     return encodedImage
@@ -400,8 +359,8 @@ def synthesize(diffuse_normal, filtered_normal) :
 
 if __name__ == "__main__":
 
-    path = "/home/givenone/Desktop/cycle_test_revised_8_hdr/"
-    form = ".hdr"
+    path = "/home/givenone/morpheus/photogeometric/rendered_images/cycle_test_revised_9_png/"
+    form = ".png"
 
     vd = pointcloud.generate_viewing_direction("/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" , focalLength = 0.005, sensor = (0.025, 0.024))
     specular_albedo = calculateSpecularAlbedo(vd, path, form)
@@ -409,7 +368,7 @@ if __name__ == "__main__":
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
     mixed_normal = calculateMixedNormals(path, form)
-    diffuse_normal = calculateDiffuseNormals(path, form)
+    diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
     specular_normal = calculateSpecularNormals(diffuse_albedo, mixed_albedo, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
