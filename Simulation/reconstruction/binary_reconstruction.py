@@ -32,7 +32,7 @@ def plot(image) :
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
-        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
+        plt.imshow(im, cmap='gray', vmin=0, vmax=30)
         plt.show()
 
 def save(path, form, image) :
@@ -43,24 +43,6 @@ def save(path, form, image) :
     im.save(path+form)
     return
 
-def rotation_matrix(axis, theta):
-    """
-    Return the rotation matrix associated with counterclockwise rotation about
-    the given axis by theta radians.
-    """
-    axis = np.asarray(axis)
-    norm = math.sqrt(np.dot(axis, axis))
-    if norm == 0 :
-        axis = np.asarray([0,0,0])
-    else :
-        axis = axis / math.sqrt(np.dot(axis, axis))
-    a = math.cos(theta / 2.0)
-    b, c, d = -axis * math.sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 def get_D(image, diffuse_albedo) : 
     height, width, channel = image.shape
@@ -88,6 +70,7 @@ def calculateMixedAlbedo(path, form) :
     red = img[..., 2]
     print("Mixed Albedo Done")
 
+    plt.title("mixed_albedo")
     plt.imshow(rgb_img)
     plt.show()
     #cv.imwrite('mixed_albedo.hdr', blue)
@@ -103,8 +86,9 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-    
-    plt.imshow(cv.cvtColor(out_img.astype('uint8'), cv.COLOR_BGR2RGB))
+
+    plt.title("diffuse_albedo")
+    plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
     plt.show()
     #cv.imwrite('diffuse_albedo.hdr', out_img)
     return out_img # BGR
@@ -114,7 +98,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "y", "y_c", "z", "z_c", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -142,7 +126,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     specular_albedo = [None,None,None] #original
     specular_albedo_frsenel = [None,None,None] #frsenel modulated
 
-    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, 1), (0, 0, -1)]
+    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]
 
     v = np.array(viewing_direction)
     v = -v.astype('float32')
@@ -154,7 +138,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         
         # original albedo separation
 
-        coefficient = 60 # scale coefficient for albedo 
+        coefficient = 30 # scale coefficient for albedo 
 
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
@@ -162,18 +146,13 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g/100, t) * coefficient
+        spec = np.subtract(v_g/100, t) * coefficient #* coefficient
         t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
-        spec_c = np.subtract(v_c/100, t) * coefficient
+        spec_c = np.subtract(v_c/100, t) * coefficient # * coefficient
         
         specular_albedo[i] = np.maximum(spec, spec_c)
-        """
-        print(images[2*i][680][1600], images[2*i+1][680][1600])
-        print(S[2*i][680][1600], S[2*i+1][680][1600])
-        print(V[2*i][680][1600], V[2*i+1][680][1600])
-        print(c_g[680][1600], c_c[680][1600])
-        print(spec[680][1600], spec_c[680][1600])
-        """
+        
+
         # fresnel
         
         fresnel = np.full( (height, width, 3), light[2*i])
@@ -195,11 +174,11 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         
         f = np.full( (height,width), 1)
         f = f.astype('float32')
-        f = f - cos_g
+        f = (f - cos_g)
         
         f_c = np.full( (height,width), 1)
         f_c = f_c.astype('float32')
-        f_c = f_c - cos_c
+        f_c = (f_c - cos_c)
         
         f_spec = spec * f
         f_spec_c = spec_c * f_c
@@ -211,9 +190,10 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     specular_median = np.median(specular_albedo, axis = 0) # median value of xyz.
     specular_median_fresnel = np.median(specular_albedo_frsenel, axis = 0) # median value of xyz.
 
-
+    plt.title("specular_albedo")
+    plot(specular_median)
+    plt.title("specular_albedo_fresnel")
     plot(specular_median_fresnel)
-    #plot(specular_median)
     #cv.imwrite('specular_albedo.png', specular_median)
     #cv.imwrite('specular_albedo_fresnel.png', specular_median_fresnel)
     
@@ -227,7 +207,8 @@ def calculateMixedNormals(path, form):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "y", "y_c", "z", "z_c", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
+
 
     names = [prefix + name + suffix for name in names]
 
@@ -259,7 +240,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "y", "y_c", "z", "z_c", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -287,6 +268,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
         normalize(encodedImage[h], copy=False)  #normalizing
    
     print("Diffuse Normal Done")  
+    plt.title("diffuse normal")
     plot(encodedImage)
     return encodedImage
 
@@ -308,13 +290,15 @@ def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diff
     
     for h in range(height):
         normalize(Reflection[h], copy=False) # Normalize Reflection
-
+    plt.title("reflection")
+    plot(Reflection)
     normal = np.subtract(Reflection, viewing_direction) #subtract ?
 
     for h in range(height):
         normalize(normal[h], copy=False)
     
     print("Speuclar Normal Done")
+    plt.plot("specular normal")
     plot(normal)
     return normal
 
