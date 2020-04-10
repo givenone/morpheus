@@ -12,4 +12,4 @@ Get input as rendered image from simulation, reconstruct albedo and normal maps.
 6. Diffuse normal (using suv space)
 7. Specular normal (with high-pass filter)
 
-**You need to specify input images directory and file format before run**
+**You need to specify input images directory in __main__ @ binary_reconstruction.py and file format before run**
