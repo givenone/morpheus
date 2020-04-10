@@ -33,8 +33,13 @@ def generate_viewing_direction(depth, focalLength, sensor = (0.036, 0.024)) :
     img = cv.imread(depth, 3)
     arr = np.array(img)
     arr = arr[..., 0]
-
     height, width = arr.shape
+
+    # temp starts
+    height, width = (2048, 3072)
+    arr = np.full( (height, width), 1)
+    arr = arr.astype('float32')
+    # temp finishes
 
     centerX = width/2
     centerY = height/2

@@ -96,7 +96,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -106,6 +106,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     for i in names:
         # H S V Separation
         img = cv.imread(i, 3)
+        print(i, img)
         arr = array(img)
         images.append(arr.astype('float32'))
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
@@ -201,7 +202,7 @@ def calculateMixedNormals(path, form):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
 
 
     names = [prefix + name + suffix for name in names]
@@ -236,7 +237,7 @@ def calculateDiffuseNormals(path, form, diffuse_albedo):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y", "b", "w"]
+    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -328,8 +329,8 @@ def synthesize(diffuse_normal, filtered_normal) :
 
 if __name__ == "__main__":
 
-    path = "/home/givenone/morpheus/photogeometric/rendered_images/cycle_test_revised_9_png/" # input image path
-    form = ".png"
+    path = "/home/givenone/Desktop/500ms/"#/home/givenone/morpheus/photogeometric/rendered_images/cycle_test_revised_9_png/" # input image path
+    form = ".bmp"
     dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
 
     vd = pointcloud.generate_viewing_direction(dist, focalLength = 0.005, sensor = (0.025, 0.024))
