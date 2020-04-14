@@ -44,18 +44,31 @@ def save(path, form, image) :
     return
 
 
-def get_D(image, diffuse_albedo) : # get magnitude of diffuse component in rgb space 
-    height, width, channel = image.shape
+def get_D(unit_vec = None) : # get magnitude of diffuse component in rgb space 
+    #height, width, channel = image.shape
 
-    z = np.copy(diffuse_albedo)
-    for h in range(height):
-        normalize(diffuse_albedo[h], copy=False)  #normalizing
+    if unit_vec == None :
+        unit_vec = [1.0, 0.0, 0.0]
+    white_vec = [1.0, 1.0, 1.0]    
+    white_vec = white_vec / np.linalg.norm(white_vec)
 
-    D = np.zeros((height, width)).astype('float32')
-    D = np.einsum('abx, abx -> ab', image, diffuse_albedo)
+    v = np.cross(white_vec, unit_vec) # a x b
+    s = np.linalg.norm(v) # norm of v
+    c = np.dot(white_vec, unit_vec) # a dot b
+    u, v, w = v
+    v_s = np.array([
+            [ 0, -w,  v],
+            [ w,  0, -u],
+            [-v,  u,  0]
+        ])
 
-    return D
-
+    R = (
+        np.eye(3) + # I
+        v_s +
+        v_s.dot(v_s) * (1.0 - c) / (s*s)
+    )
+    # return matrix * (dot product) rgb space coordinate = suv space coordinate
+    return np.linalg.inv(R.transpose())  # return inverse of rotation vecotr (column-wise)
     
 def calculateMixedAlbedo(path, form) :
 
@@ -298,7 +311,7 @@ if __name__ == "__main__":
     path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_9_png\\" # input image path
     form = ".png"
     dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
-
+    """
     vd = pointcloud.generate_viewing_direction(dist, focalLength = 0.005, sensor = (0.025, 0.024))
     specular_albedo = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
@@ -310,3 +323,4 @@ if __name__ == "__main__":
 
     filtered_normal = HPF(specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
+    """
