@@ -32,7 +32,7 @@ def plot(image) :
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
-        plt.imshow(im, cmap='gray', vmin=0, vmax=30)
+        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
         plt.show()
 
 def save(path, form, image) :
@@ -131,32 +131,31 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         
         # original albedo separation
 
-        coefficient = 255 # scale coefficient for albedo 
+        coefficient = 128 # scale coefficient for albedo 
 
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
         c_g=  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) #chroma
 
+
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
         spec = np.subtract(v_g/255, t) * coefficient #* coefficient
-
         t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
         spec_c = np.subtract(v_c/255, t) * coefficient # * coefficient
-        
-        specular_albedo[i] = np.maximum(spec, spec_c)
 
-        hsv_img = np.add(cv.cvtColor(images[2*i], cv.COLOR_BGR2HSV), cv.cvtColor(images[2*i + 1], cv.COLOR_BGR2HSV)) #HSV     
-        specular_V[i] = np.add(hsv_img[...,2], specular_albedo[i]) / 2
-        
+        mask = v_g > v_c
+        specular_albedo[i] = np.empty_like(v_g)
+        specular_albedo[i][mask] = spec[mask]
+        specular_albedo[i][~mask] = spec_c[~mask]
+
+        specular_albedo[i][spec < 0] = spec_c[spec < 0]
+        specular_albedo[i][spec_c < 0] = spec[spec_c < 0]
+                
     specular_median = np.average(specular_albedo, axis = 0) # median value of xyz.
     
     plt.title("specular_albedo")
     plot(specular_median)
-    
-    V_median = np.average(specular_V, axis = 0)
-
-
 
     print("Specular Albedo Done")  
     return specular_median
