@@ -116,6 +116,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     for i in names:
         # H S V Separation
         img = cv.imread(i, 3)
+        print(i, img)
         arr = array(img)
         images.append(arr.astype('float32'))
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
