@@ -65,9 +65,6 @@ def calculateMixedAlbedo(path, form) :
     arr = arr.astype('float32')
     rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
-    blue = img[..., 0]
-    green = img[..., 1]
-    red = img[..., 2]
     print("Mixed Albedo Done")
 
     plt.title("mixed_albedo")
@@ -106,7 +103,6 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     for i in names:
         # H S V Separation
         img = cv.imread(i, 3)
-        print(i, img)
         arr = array(img)
         images.append(arr.astype('float32'))
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
@@ -123,9 +119,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     height, width, _ = images[0].shape
     
     specular_albedo = [None,None,None] #original
-    specular_albedo_frsenel = [None,None,None] #frsenel modulated
-
-    light = [ (-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)] # incident light vector for fresnel modulation
+    specular_V = [None,None,None] #original
 
     v = np.array(viewing_direction)
     v = -v.astype('float32')
@@ -137,7 +131,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
         
         # original albedo separation
 
-        coefficient = 150 # scale coefficient for albedo 
+        coefficient = 255 # scale coefficient for albedo 
 
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
@@ -146,54 +140,26 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
         spec = np.subtract(v_g/255, t) * coefficient #* coefficient
+
         t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
         spec_c = np.subtract(v_c/255, t) * coefficient # * coefficient
         
         specular_albedo[i] = np.maximum(spec, spec_c)
 
-        # fresnel modulation starts here.
-        fresnel = np.full( (height, width, 3), light[2*i])
-        fresnel = fresnel.astype('float32')
-
-        fresnel_c = np.full( (height, width, 3), light[2*i+1])
-        fresnel_c = fresnel_c.astype('float32')
+        hsv_img = np.add(cv.cvtColor(images[2*i], cv.COLOR_BGR2HSV), cv.cvtColor(images[2*i + 1], cv.COLOR_BGR2HSV)) #HSV     
+        specular_V[i] = np.add(hsv_img[...,2], specular_albedo[i]) / 2
         
-        E = v + fresnel
-        for h in range(height):
-            normalize(E[h], copy=False)  #normalizing
-
-        E_c = v + fresnel_c
-        for h in range(height):
-            normalize(E_c[h], copy=False)  #normalizing
-
-        cos_g = np.einsum('abx, abx -> ab', v, E)
-        cos_c = np.einsum('abx, abx -> ab', v, E_c)  
-        
-        f = np.full( (height,width), 1)
-        f = f.astype('float32')
-        f = (f - cos_g)
-        
-        f_c = np.full( (height,width), 1)
-        f_c = f_c.astype('float32')
-        f_c = (f_c - cos_c)
-        
-        f_spec = spec * f
-        f_spec_c = spec_c * f_c
-        #spec = spec + (1.0 - spec) * f
-        #spec_c = spec_c + (1.0 - spec_c) * f_c
-        specular_albedo_frsenel[i] = np.maximum(f_spec, f_spec_c)
-
-        
-    specular_median = np.median(specular_albedo, axis = 0) # median value of xyz.
-    specular_median_fresnel = np.median(specular_albedo_frsenel, axis = 0) # median value of xyz.
-
+    specular_median = np.average(specular_albedo, axis = 0) # median value of xyz.
+    
     plt.title("specular_albedo")
     plot(specular_median)
-    plt.title("specular_albedo_fresnel")
-    plot(specular_median_fresnel)
     
+    V_median = np.average(specular_V, axis = 0)
+
+
+
     print("Specular Albedo Done")  
-    return specular_median, specular_median_fresnel
+    return specular_median
 
 
 def calculateMixedNormals(path, form):
@@ -330,18 +296,18 @@ def synthesize(diffuse_normal, filtered_normal) :
 if __name__ == "__main__":
 
     #"/home/givenone/Desktop/500ms/"#
-    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_8_hdr\\" # input image path
-    form = ".hdr"
+    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_9_png\\" # input image path
+    form = ".png"
     dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
 
     vd = pointcloud.generate_viewing_direction(dist, focalLength = 0.005, sensor = (0.025, 0.024))
-    specular_albedo, specular_albedo_fresnel = calculateSpecularAlbedo(vd, path, form)
+    specular_albedo = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
 
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form, diffuse_albedo)
-    specular_normal = calculateSpecularNormals(diffuse_albedo, specular_albedo_fresnel, mixed_normal, diffuse_normal, vd)
+    specular_normal = calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
