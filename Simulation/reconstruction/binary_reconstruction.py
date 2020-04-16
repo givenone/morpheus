@@ -52,7 +52,7 @@ def get_D(unit_vec = None) : # get magnitude of diffuse component in rgb space
     white_vec = [1.0, 1.0, 1.0]    
     white_vec = white_vec / np.linalg.norm(white_vec)
 
-    v = np.cross(white_vec, unit_vec) # a x b
+    v = np.cross(unit_vec, white_vec) # a x b
     s = np.linalg.norm(v) # norm of v
     c = np.dot(white_vec, unit_vec) # a dot b
     u, v, w = v
@@ -116,7 +116,7 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     for i in names:
         # H S V Separation
         img = cv.imread(i, 3)
-        print(i, img)
+        
         arr = array(img)
         images.append(arr.astype('float32'))
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
@@ -133,7 +133,6 @@ def calculateSpecularAlbedo(viewing_direction, path, form) :
     height, width, _ = images[0].shape
     
     specular_albedo = [None,None,None] #original
-    specular_V = [None,None,None] #original
 
     v = np.array(viewing_direction)
     v = -v.astype('float32')
@@ -210,16 +209,6 @@ def calculateMixedNormals(path, form):
     plot(encodedImage)
     return encodedImage
 
-def cross(image) :
-    e1 = np.array([1.0, 1.0, 1.0]).astype('float64')
-    e1 = e1 / np.linalg.norm(e1)
-    height, width, channel = image.shape
-    D = np.zeros((height, width)).astype('float64')
-
-    axis = np.cross(image, e1)   # sin theta?  
-    D=np.linalg.norm(axis, axis = 2)
-    return D
-
 def calculateDiffuseNormals(path, form):
     images = []
 
@@ -241,17 +230,12 @@ def calculateDiffuseNormals(path, form):
     I = get_D() # rotation matrix    
     N = []
 
-    N_sin=[]
     for i in range(3) :
         I_suv_g = I.dot(images[2*i].reshape([-1,3]).transpose()).transpose().reshape(height,width,3)
         I_suv_c = I.dot(images[2*i+1].reshape([-1,3]).transpose()).transpose().reshape(height,width,3)
         G=np.sqrt(I_suv_g[:,:,1]**2 + I_suv_g[:,:,2]**2)
         G_C=np.sqrt(I_suv_c[:,:,1]**2 + I_suv_c[:,:,2]**2)
         N.append(G-G_C)
-
-        G = cross(images[2*i])
-        G_C = cross(images[2*i + 1])
-        N_sin.append(G-G_C)
 
     encodedImage = np.empty_like(images[0]).astype('float32')
     encodedImage[..., 0] = N[0] # X
@@ -264,12 +248,6 @@ def calculateDiffuseNormals(path, form):
     plt.title("diffuse normal")
     plot(encodedImage)
 
-    encodedImage = np.empty_like(images[0]).astype('float32')
-    encodedImage[..., 0] = N_sin[0] # X
-    encodedImage[..., 1] = N_sin[1] # Y
-    encodedImage[..., 2] = N_sin[2] # Z
-    plt.title("diffuse normal_sin")
-    plot(encodedImage)
     return encodedImage
 
 def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
@@ -292,13 +270,15 @@ def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diff
         normalize(Reflection[h], copy=False) # Normalize Reflection
     plt.title("reflection")
     plot(Reflection)
-    normal = np.subtract(Reflection, viewing_direction) #subtract ?
 
+    normal = np.add(Reflection, viewing_direction) #subtract ?
     for h in range(height):
         normalize(normal[h], copy=False)
-    
+
+    print(Reflection[1250][1250], viewing_direction[1250][1250], normal[1250][1250])
+
     print("Speuclar Normal Done")
-    plt.plot("specular normal")
+    plt.title("specular normal")
     plot(normal)
     return normal
 
@@ -333,20 +313,20 @@ def synthesize(diffuse_normal, filtered_normal) :
 if __name__ == "__main__":
 
     #"/home/givenone/Desktop/500ms/"#
-    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_9_png\\" # input image path
-    form = ".png"
-    dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
-    """
-    vd = pointcloud.generate_viewing_direction(dist, focalLength = 0.005, sensor = (0.025, 0.024))
+    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\1\\"#"C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_8_hdr\\" # input image path
+    form = ".bmp"
+    #dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
+    
+    vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.005, sensor = (0.0737, 0.0492))
     specular_albedo = calculateSpecularAlbedo(vd, path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
-    """
+    
     mixed_normal = calculateMixedNormals(path, form)
     diffuse_normal = calculateDiffuseNormals(path, form)
-    """
+    
     specular_normal = calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, vd)
 
     filtered_normal = HPF(specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
-    """
+    

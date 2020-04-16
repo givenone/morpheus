@@ -28,39 +28,26 @@ def generate_pointcloud(depth, focalLength, cameraLocation, sensor = (0.036, 0.0
     return pc
 
 
-def generate_viewing_direction(depth, focalLength, sensor = (0.036, 0.024)) :
-    
-    #img = cv.imread(depth, 3)
-    #arr = np.array(img)
-    #arr = arr[..., 0]
-    #height, width = arr.shape
+def generate_viewing_direction(path, form, focalLength, sensor = (0.036, 0.024)) :
 
-    # temp starts
-    height, width = (3840, 2160) # (2048, 3072)
-    arr = np.full( (height, width), 1)
-    arr = arr.astype('float32')
-    # temp finishes
-
-
-    # temp starts
-    height, width = (2048, 3072)
-    arr = np.full( (height, width), 1)
-    arr = arr.astype('float32')
-    # temp finishes
+    name = path + "w" + form
+    image = cv.imread(name, 3) #BGR
+    height, width, _ = image.shape
 
     centerX = width/2
     centerY = height/2
-
     sensor_width = sensor[0]
     sensor_height = sensor[1]
-    vd = [ [   ( (((float)(x- centerX) / (float) (width))) * sensor_width * (arr[y][x]/ focalLength), 
-                 (((float)(centerY - y) / (float) (height))) * sensor_height * (arr[y][x]/ focalLength),
-                 -arr[y][x])
-                for x in range(width)
-            ] for y in range(height)
-    ]
-    #vd = [[( (x - centerX) / height * sensor_height * arr[x][y] / focalLength, arr[x][y], (y - centerY) / width * sensor_width * arr[x][y] / focalLength) for y in range(width)] for x in range(height)]
-    
+    x_pitch = sensor_width/width
+    y_pitch = sensor_height/height
+
+    vd = [ [ ( (float)(centerX-x) * x_pitch,
+            (float)(y-centerY) * y_pitch,
+            -focalLength)
+            for x in range(width)]
+            for y in range(height)]
+
+    vd = [ [ (0,0,1) for x in range(width)] for y in range(height)]
     v = np.array(vd)
     vd = v.astype('float32')
 
