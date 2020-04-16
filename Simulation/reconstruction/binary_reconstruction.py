@@ -72,18 +72,23 @@ def get_D(unit_vec = None) : # get magnitude of diffuse component in rgb space
     
 def calculateMixedAlbedo(path, form) :
 
-    name = path + "w" + form
+    name = path + "y" + form
+    name_c = path + "y_c" + form
     img = cv.imread(name, 3) #BGR
-    arr = array(img)
-    arr = arr.astype('float32')
-    rgb_img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    img_c = cv.imread(name_c, 3)
+    arr = array(img).astype('float32')
+    arr_c = array(img_c).astype('float32')
+
+    sum_img = arr + arr_c
+
+    rgb_img = cv.cvtColor((sum_img/2).astype('uint8'), cv.COLOR_BGR2RGB)
 
     print("Mixed Albedo Done")
 
     plt.title("mixed_albedo")
     plt.imshow(rgb_img)
     plt.show()
-    return arr # BGR Image
+    return sum_img # BGR Image
 
 
 
@@ -133,70 +138,55 @@ def calculateSpecularAlbedo(path, form) :
     height, width, _ = images[0].shape
     
     specular_albedo = [None,None,None] #original
-    
-    coefficient = 128 # scale coefficient for albedo 
 
     for i in range(3) : 
-        h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i]/255, V[2*i]/255, H[2*i+1], S[2*i+1]/255, V[2*i+1]/255 
+        h_g, s_g, v_g, h_c, s_c, v_c = H[2*i], S[2*i], V[2*i], H[2*i+1], S[2*i+1], V[2*i+1]
         
         # original albedo separation
-
         
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
-        c_g_1=  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)) / 255
-        c_c_1 =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) / 255 #chroma
+        # chroma
+        c_g =  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
+        c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) 
 
-        c_g = np.multiply(v_g, s_g)
-        c_c = np.multiply(v_c, s_c)
+        #c_g = np.multiply(v_g, s_g) -> Same value with range(rgb)
+        #c_c = np.multiply(v_c, s_c)
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g, t) * coefficient #* coefficient
+        spec = np.subtract(v_g, t*255) 
         t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
-        spec_c = np.subtract(v_c, t) * coefficient # * coefficient
+        spec_c = np.subtract(v_c, t*255) 
 
         mask = v_g > v_c
         # need to mask out error (when saturation is bigger in bright side)
-        print(mask[1400][1200], spec[1400][1200], spec_c[1400][1200])
-        print(s_g[1400][1200], v_g[1400][1200], c_g[1400][1200], c_g_1[1400][1200])
-        print(s_c[1400][1200], v_c[1400][1200], c_c[1400][1200], c_c_1[1400][1200])
-
         specular_albedo[i] = np.empty_like(v_g)
         specular_albedo[i][mask] = spec[mask]
         specular_albedo[i][~mask] = spec_c[~mask]
         
-
-        #specular_albedo[i][spec < 0] = spec_c[spec < 0]
-        #specular_albedo[i][spec_c < 0] = spec[spec_c < 0]
     specular_sum = np.zeros_like(specular_albedo[0])
-    specular_cnt = np.zeros_like(specular_albedo[0])
-    specular_sum_avg = np.zeros_like(specular_albedo[0])
+
     for i in range(3) :
         max_V = np.empty_like(V[0])
-        flag_V = V[2*i] > V[2*i+1]
-        max_V[flag_V] = V[2*i][flag_V] / 255
-        max_V[~flag_V] = V[2*i + 1][~flag_V] / 255
+        flag_V = V[2*i] > V[2*i+1] # maximum V (Value in HSV) : V_g
+        max_V[flag_V] = V[2*i][flag_V]
+        max_V[~flag_V] = V[2*i + 1][~flag_V]
 
         flag = specular_albedo[i] > 0
         specular_sum[flag] += specular_albedo[i][flag]
-        specular_sum[~flag] += max_V[~flag] * coefficient
+        specular_sum[~flag] += max_V[~flag]
 
-        specular_cnt[flag] += 1
-        specular_sum_avg[flag] += specular_albedo[i][flag]
+        specular_albedo[i][~flag] = max_V[~flag]
 
-
-    specular_sum = specular_sum / 3
-    specular_median = np.median(specular_albedo, axis = 0) # median value of xyz.
-    specular_avg = np.divide(specular_sum_avg, specular_cnt, out=max_V * coefficient, where=specular_cnt!=0)
-    plt.title("specular_albedo")
-    plot(specular_median)
+    specular_average = specular_sum / 3
+    specular_median = np.median(specular_albedo, axis = 0)
     plt.title("specular_albedo_using V")
-    plot(specular_sum)
-    plt.title("specular_albedo_average")
-    plot(specular_avg)
+    plot(specular_average)
+    plt.title("specular_albedo_median")
+    plot(specular_median)
     print("Specular Albedo Done")  
     
-    return specular_sum
+    return specular_median
 
 
 def calculateMixedNormals(path, form):
@@ -273,8 +263,8 @@ def calculateDiffuseNormals(path, form):
 
 def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
     
-    su = specular_albedo + diffuse_albedo[...,0]
-    alpha = np.divide(diffuse_albedo[...,0], su, out=np.zeros_like(su), where=su!=0)
+    su = specular_albedo + diffuse_albedo[...,1]
+    alpha = np.divide(diffuse_albedo[...,1], su, out=np.zeros_like(su), where=su!=0)
 
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
     d_y = np.multiply(diffuse_normal[..., 1], alpha)
@@ -290,7 +280,7 @@ def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diff
         normalize(Reflection[h], copy=False) # Normalize Reflection
     plt.title("reflection")
     plot(Reflection)
-    #save("C:\\Users\\yeap98\\Desktop\\result\\" + "reflection", ".png", Reflection)
+    save("C:\\Users\\yeap98\\Desktop\\result\\" + "reflection", ".png", Reflection)
 
     normal = np.add(Reflection, viewing_direction) #subtract ?
     for h in range(height):
@@ -305,7 +295,7 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
     
     height, width, _ = normal.shape
 
-    blur = cv.GaussianBlur(normal, (1001, 1001), 0)
+    blur = cv.GaussianBlur(normal, (501, 501), 0)
     filtered_normal = cv.subtract(normal, blur)
    
     for h in range(height) :
@@ -317,7 +307,7 @@ def HPF(normal) : # High Pass Filtering for specular normal reconstruction
 
 
 def synthesize(diffuse_normal, filtered_normal) :
-    coefficient = 0.5 # coefficient for high-pass filtered normal
+    coefficient = 0.7 # coefficient for high-pass filtered normal
     syn = np.add(diffuse_normal, filtered_normal * coefficient)
 
     height, width, _ = syn.shape
@@ -336,7 +326,7 @@ if __name__ == "__main__":
     form = ".bmp"
     #dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
     
-    vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.1, sensor = (0.0737, 0.0492))
+    vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.05, sensor = (0.0737, 0.0492))
     specular_albedo = calculateSpecularAlbedo(path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
