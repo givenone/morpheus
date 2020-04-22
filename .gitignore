@@ -4,3 +4,4 @@ venv
 .vscode/
 temp/
 result_images/
+rendered_images/
