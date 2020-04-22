@@ -32,7 +32,7 @@ def plot(image) :
 
     else : #gray scale image
         im = Image.fromarray(image.astype('uint8'), 'L')
-        plt.imshow(im, cmap='gray', vmin=0, vmax=100)
+        plt.imshow(im, cmap='gray', vmin=0, vmax=255)
         plt.show()
 
 def save(path, form, image) :
@@ -70,40 +70,71 @@ def get_D(unit_vec = None) : # get magnitude of diffuse component in rgb space
     # return matrix * (dot product) rgb space coordinate = suv space coordinate
     return np.linalg.inv(R.transpose())  # return inverse of rotation vecotr (column-wise)
     
+from scipy.spatial.transform import Rotation as Rot
+def get_D_quat(unit_vec = None) : # get magnitude of diffuse component in rgb space 
+    #height, width, channel = image.shape
+
+    if unit_vec == None :
+        v1 = [1.0, 0.0, 0.0] # any axis
+    else:
+        v1 = unit_vec
+    v2 = [1.0, 1.0, 1.0]    # white vector
+    v2 = v2 / np.linalg.norm(v2)
+
+    rot_axis = np.cross(v1, v2) # a x b
+    rot_angle = np.arccos(np.dot(v1, v2))
+    cos_val = np.cos(rot_angle/2.0)
+    sin_val = np.sin(rot_angle/2.0)
+    #print(rot_axis)
+
+    rot1 = Rot.from_quat([rot_axis[0]*sin_val, rot_axis[1]*sin_val, rot_axis[2]*sin_val, cos_val])
+    #rot2 = Rot.from_rotvec(rot_angle * rot_axis)
+
+    #print(rot1.as_euler('zyx', degrees=True))
+    #print(rot2.as_euler('zyx', degrees=True))
+    
+  
+    return Rot.inv(rot1).as_matrix()
+    #return Rot.inv(rot2).as_matrix()
+        
 def calculateMixedAlbedo(path, form) :
 
-    name = path + "y" + form
-    name_c = path + "y_c" + form
-    img = cv.imread(name, 3) #BGR
-    img_c = cv.imread(name_c, 3)
-    arr = array(img).astype('float32')
-    arr_c = array(img_c).astype('float32')
+    names = ["x", "x_c", "y", "y_c", "z", "z_c"]
+    names = [path + name + form for name in names]
 
-    sum_img = arr + arr_c
-
-    rgb_img = cv.cvtColor((sum_img/2).astype('uint8'), cv.COLOR_BGR2RGB)
+    images = []
+    for name in names :
+        img = cv.imread(name, 3) #BGR
+        arr = array(img).astype('float32')
+        images.append(arr)
+    
+    sum_img = np.zeros_like(images[0])
+    for i in images :
+        sum_img += i
+     
+    rgb_img = cv.cvtColor((sum_img/6).astype('uint8'), cv.COLOR_BGR2RGB)
 
     print("Mixed Albedo Done")
 
-    plt.title("mixed_albedo")
-    plt.imshow(rgb_img)
-    plt.show()
-    return sum_img # BGR Image
+    #plt.title("mixed_albedo")
+    #plt.imshow(rgb_img)
+    #plt.show()
+    return sum_img/3 # BGR Image
 
 
 
 def calculateDiffuseAlbedo(mixed, specular) :
     
     out_img = np.zeros_like(mixed).astype('float32')
-    out_img[...,0] = np.subtract(mixed[...,0], specular)
-    out_img[...,1] = np.subtract(mixed[...,1], specular)
-    out_img[...,2] = np.subtract(mixed[...,2], specular)
+    out_img[...,0] = np.subtract(mixed[...,0], specular)  
+    out_img[...,1] = np.subtract(mixed[...,1], specular) 
+    out_img[...,2] = np.subtract(mixed[...,2], specular) 
     
     print("Diffuse Albedo Done")
 
-    plt.title("diffuse_albedo")
-    plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("diffuse_albedo")
+    #plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
+    #plt.show()
     return out_img # BGR
 
 def calculateSpecularAlbedo(path, form) :
@@ -111,7 +142,7 @@ def calculateSpecularAlbedo(path, form) :
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
+    names = ["x", "x_c", "y", "y_c", "z", "z_c"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -146,47 +177,63 @@ def calculateSpecularAlbedo(path, form) :
         
         b,g,r = cv.split(images[2*i])
         b_c, g_c,r_c = cv.split(images[2*i+1])
+        
         # chroma
         c_g =  np.subtract(np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b))
         c_c =  np.subtract(np.maximum(np.maximum(r_c, g_c), b_c), np.minimum(np.minimum(r_c, g_c), b_c)) 
 
         #c_g = np.multiply(v_g, s_g) -> Same value with range(rgb)
         #c_c = np.multiply(v_c, s_c)
+        """
+        # another implementation of chroma
+        alpha = np.subtract(np.subtract(2*r, g), b) * 0.5
+        beta = np.sqrt(3) * np.subtract(g, b) * 0.5
+        c_g = np.sqrt(np.add(alpha**2, beta**2)) 
+
+        alpha = np.subtract(np.subtract(2*r_c, g_c), b_c) * 0.5
+        beta = np.sqrt(3) * np.subtract(g_c, b_c) * 0.5
+        c_c = np.sqrt(np.add(alpha**2, beta**2)) 
+        """
 
         t = np.divide(c_g, s_c, out=np.zeros_like(c_g), where=s_c!=0)
-        spec = np.subtract(v_g, t*255) 
+        spec = np.subtract(v_g, t*128) 
         t = np.divide(c_c, s_g, out=np.zeros_like(c_c), where=s_g!=0)
-        spec_c = np.subtract(v_c, t*255) 
+        spec_c = np.subtract(v_c, t*128) 
 
         mask = v_g > v_c
         # need to mask out error (when saturation is bigger in bright side)
         specular_albedo[i] = np.empty_like(v_g)
         specular_albedo[i][mask] = spec[mask]
         specular_albedo[i][~mask] = spec_c[~mask]
-        
+
+    """
+    # averaging specular values    
     specular_sum = np.zeros_like(specular_albedo[0])
-
+    specular_cnt = np.zeros_like(specular_albedo[0])
+    
     for i in range(3) :
-        max_V = np.empty_like(V[0])
-        flag_V = V[2*i] > V[2*i+1] # maximum V (Value in HSV) : V_g
-        max_V[flag_V] = V[2*i][flag_V]
-        max_V[~flag_V] = V[2*i + 1][~flag_V]
-
         flag = specular_albedo[i] > 0
         specular_sum[flag] += specular_albedo[i][flag]
-        specular_sum[~flag] += max_V[~flag]
+        specular_cnt[flag] += 1
 
-        specular_albedo[i][~flag] = max_V[~flag]
-
-    specular_average = specular_sum / 3
-    specular_median = np.median(specular_albedo, axis = 0)
+    specular_average =  np.divide(specular_sum, specular_cnt, out=np.zeros_like(specular_sum), where=specular_cnt!=0)
     plt.title("specular_albedo_using V")
     plot(specular_average)
-    plt.title("specular_albedo_median")
-    plot(specular_median)
+    """
+    
+    # using normailzed max values as the specular
+    specular_max = np.amax(specular_albedo, axis=0)
+    min_val = np.min(specular_max)
+    max_val = np.max(specular_max)
+    #print("specular_max: min={}, max={}".format(min_val, max_val))
+    specular_max = (specular_max - min_val) / (max_val - min_val) * 128.0 # 255 is too bright
+    #plt.title("specular_albedo_normalized_max")
+    #plot(specular_max) 
+    
     print("Specular Albedo Done")  
     
-    return specular_median
+    #return specular_average
+    return specular_max
 
 
 def calculateMixedNormals(path, form):
@@ -195,7 +242,7 @@ def calculateMixedNormals(path, form):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
+    names = ["x", "x_c", "y", "y_c", "z", "z_c"]
 
 
     names = [prefix + name + suffix for name in names]
@@ -228,7 +275,7 @@ def calculateDiffuseNormals(path, form):
     prefix = path
     suffix = form
 
-    names = ["x", "x_c", "z", "z_c", "y_c", "y"]
+    names = ["x", "x_c", "y", "y_c", "z", "z_c"]
 
     names = [prefix + name + suffix for name in names]
 
@@ -240,7 +287,7 @@ def calculateDiffuseNormals(path, form):
     height, width, _ = images[0].shape
 
     rot_vec = [1,1,1] # specular : white component
-    I = get_D() # rotation matrix    
+    I = get_D_quat() # rotation matrix    
     N = []
 
     for i in range(3) :
@@ -263,9 +310,8 @@ def calculateDiffuseNormals(path, form):
 
 def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, viewing_direction) : 
     
-    su = specular_albedo + diffuse_albedo[...,1]
-    alpha = np.divide(diffuse_albedo[...,1], su, out=np.zeros_like(su), where=su!=0)
-
+    su = specular_albedo + diffuse_albedo[...,0]
+    alpha = np.divide(diffuse_albedo[...,0], su, out=np.zeros_like(su), where=su!=0)
     d_x = np.multiply(diffuse_normal[..., 0], alpha)
     d_y = np.multiply(diffuse_normal[..., 1], alpha)
     d_z = np.multiply(diffuse_normal[..., 2], alpha)
@@ -275,14 +321,15 @@ def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diff
     alphadiffuse[..., 2] = d_z
 
     Reflection = np.subtract(mixed_normal, alphadiffuse)
+
     height, width, _ = Reflection.shape
     for h in range(height):
         normalize(Reflection[h], copy=False) # Normalize Reflection
-    plt.title("reflection")
-    plot(Reflection)
-    save("C:\\Users\\yeap98\\Desktop\\result\\" + "reflection", ".png", Reflection)
+    #plt.title("reflection")
+    #plot(Reflection)
+    #save("C:\\Users\\yeap98\\Desktop\\result\\" + "reflection", ".png", Reflection)
 
-    normal = np.add(Reflection, viewing_direction) #subtract ?
+    normal = np.add(Reflection, -viewing_direction).astype('float32')
     for h in range(height):
         normalize(normal[h], copy=False)
 
@@ -290,25 +337,46 @@ def calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diff
 
     return normal
 
-
+from scipy.ndimage import gaussian_filter
 def HPF(normal) : # High Pass Filtering for specular normal reconstruction
     
     height, width, _ = normal.shape
-
-    blur = cv.GaussianBlur(normal, (501, 501), 0)
+    
+    #blur = cv.GaussianBlur(normal, (17, 17), cv.BORDER_DEFAULT)
+    blur = np.zeros_like(normal)
+    blur[..., 0] = gaussian_filter(normal[..., 0], sigma=7)
+    blur[..., 1] = gaussian_filter(normal[..., 1], sigma=7)
+    blur[..., 2] = gaussian_filter(normal[..., 2], sigma=7)
     filtered_normal = cv.subtract(normal, blur)
-   
-    for h in range(height) :
-        normalize(filtered_normal[h], copy=False)
+
+    
+    #plt.title("blur")
+    #plot(blur)
+    
+    #plt.title("filtered")
+    #plot(filtered_normal)  
+    
+
+    #for h in range(height) :
+    #    normalize(filtered_normal[h], copy=False)
 
     print("High Pass Filter Done")
 
     return filtered_normal
 
+def HPF_test(diffuse, specular) : # High Pass Filtering for specular normal reconstruction
+    
+    height, width, _ = specular.shape
+    
+    filtered_normal = np.subtract(specular, diffuse)
+
+    print("High Pass Filter Done")
+
+    return filtered_normal
 
 def synthesize(diffuse_normal, filtered_normal) :
-    coefficient = 0.7 # coefficient for high-pass filtered normal
-    syn = np.add(diffuse_normal, filtered_normal * coefficient)
+
+    syn = np.add(diffuse_normal, filtered_normal)
 
     height, width, _ = syn.shape
 
@@ -321,12 +389,11 @@ def synthesize(diffuse_normal, filtered_normal) :
 
 if __name__ == "__main__":
 
-    #"/home/givenone/Desktop/500ms/"#
-    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\1\\"#"C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_8_hdr\\" # input image path
-    form = ".bmp"
-    #dist = "/home/givenone/morpheus/photogeometric/Simulation/output/dist_new.hdr" # distance vector path
-    
-    vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.05, sensor = (0.0737, 0.0492))
+    form = ".png"#".bmp"
+    path = "C:\\Users\\yeap98\\Desktop\\lightstage\\morpheus\\rendered_images\\cycle_test_revised_9_png\\" 
+        
+    vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.05, sensor = (0.025, 0.024))
+    #vd = pointcloud.generate_viewing_direction(path, form, focalLength = 0.012, sensor = (0.0689, 0.0492))
     specular_albedo = calculateSpecularAlbedo(path, form)
     mixed_albedo = calculateMixedAlbedo(path, form)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
@@ -335,6 +402,7 @@ if __name__ == "__main__":
     diffuse_normal = calculateDiffuseNormals(path, form)
     specular_normal = calculateSpecularNormals(diffuse_albedo, specular_albedo, mixed_normal, diffuse_normal, vd)
     filtered_normal = HPF(specular_normal)
+    #filtered_normal = HPF_test(diffuse_normal, specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
     
     
@@ -344,14 +412,12 @@ if __name__ == "__main__":
     plot(diffuse_normal)
     plt.title("specular_normal")
     plot(specular_normal)
-
     plt.title("filtered_normal")
     plot(filtered_normal)
-
     plt.title("Synthesized")
     plot(syn)
 
-    desktop = "C:\\Users\\yeap98\\Desktop\\result\\"
+    desktop = "/media/spyo/Workspace/Work/Lightstage/lightstage/simulation & post-processing/results/" #"C:\\Users\\yeap98\\Desktop\\result\\"
     
     save(desktop + "mixed", ".png", mixed_normal)
     save(desktop + "diffuse", ".png", diffuse_normal)

@@ -30,7 +30,7 @@ def generate_pointcloud(depth, focalLength, cameraLocation, sensor = (0.036, 0.0
 
 def generate_viewing_direction(path, form, focalLength, sensor = (0.036, 0.024)) :
 
-    name = path + "w" + form
+    name = path + "x" + form
     image = cv.imread(name, 3) #BGR
     height, width, _ = image.shape
 
@@ -40,26 +40,24 @@ def generate_viewing_direction(path, form, focalLength, sensor = (0.036, 0.024))
     sensor_height = sensor[1]
     x_pitch = sensor_width/width
     y_pitch = sensor_height/height
+    print("pitch: {}, {}".format(x_pitch, y_pitch))
 
-    vd = [ [ ( (float)(centerX-x) * x_pitch,
-            (float)(y-centerY) * y_pitch,
+    vd = [ [ ( (float)(x-centerX) * x_pitch,
+            (float)(centerY-y) * y_pitch,
             -focalLength)
             for x in range(width)]
             for y in range(height)]
 
-    vd = [ [ (0,0,1) for x in range(width)] for y in range(height)]
+    #vd = [[(0,0,1) for x in range(width)] for y in range(height)]
     v = np.array(vd)
     vd = v.astype('float32')
 
     # Normalization
     for h in range(height) :
-        normalize(v[h], copy = False)
-
-    #with open("vd.txt", "wb") as fp:
-    #    pickle.dump(vd, fp)
+        normalize(vd[h], copy = False)
 
     print("Viewing Direction Done")
-    return v
+    return vd
 
 
 #generate_pointcloud("/home/givenone/morpheus/photogeometric/Simulation/reconstruction/dist.hdr" , focalLength = 0.005, cameraLocation=-4.9)
