@@ -36,7 +36,7 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects(all = True)
-    #util.setting()
+    util.setting()
     
     # Configuration
     frame = config['frame']
@@ -73,11 +73,3 @@ if __name__ == "__main__":
         print(pattern_name, "rendering done")
              
     print("Rendering Done")
-
-    # Genearte Geometry Details
-    (w, h) = geometry.depth.getDistanceMap(2160, 3840, output_path, "dist")
-    
-    #geometry.pointcloud.generate_pointcloud()
-    #print("Generated Point Cloud")
-
-    # Reconstruction   
