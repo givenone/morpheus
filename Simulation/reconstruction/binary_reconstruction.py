@@ -11,7 +11,11 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 import geometry.pointcloud as pointcloud
 import concurrent.futures
+<<<<<<< HEAD
 
+=======
+from tifffile import imsave
+>>>>>>> origin/donghak
 
 def plot(image) :
     #Input : np array
@@ -37,9 +41,15 @@ def plot(image) :
 
 def save(path, form, image) :
 
+<<<<<<< HEAD
     image = (image + 1.0) / 2.0
     image *= 255.0
     im = Image.fromarray(image.astype('uint8'))
+=======
+    #image = (image + 1.0) / 2.0
+    #image *= 255.0
+    im = Image.fromarray()
+>>>>>>> origin/donghak
     im.save(path+form)
     return
 
@@ -132,9 +142,15 @@ def calculateDiffuseAlbedo(mixed, specular) :
     
     print("Diffuse Albedo Done")
 
+<<<<<<< HEAD
     #plt.title("diffuse_albedo")
     #plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
     #plt.show()
+=======
+    plt.title("diffuse_albedo")
+    plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
+    plt.show()
+>>>>>>> origin/donghak
     return out_img # BGR
 
 def calculateSpecularAlbedo(path, form) :
@@ -404,8 +420,7 @@ if __name__ == "__main__":
     filtered_normal = HPF(specular_normal)
     #filtered_normal = HPF_test(diffuse_normal, specular_normal)
     syn = synthesize(diffuse_normal, filtered_normal)
-    
-    
+
     plt.title("mixed_normal")
     plot(mixed_normal)
     plt.title("diffuse normal")
@@ -417,11 +432,17 @@ if __name__ == "__main__":
     plt.title("Synthesized")
     plot(syn)
 
-    desktop = "/media/spyo/Workspace/Work/Lightstage/lightstage/simulation & post-processing/results/" #"C:\\Users\\yeap98\\Desktop\\result\\"
+    """
+    desktop = "C:\\Users\\yeap98\\Desktop\\result\\final\\"
     
-    save(desktop + "mixed", ".png", mixed_normal)
-    save(desktop + "diffuse", ".png", diffuse_normal)
-    save(desktop + "specular", ".png", specular_normal)
-    save(desktop + "filtered", ".png", filtered_normal)
-    save(desktop + "syn", ".png", syn)
+    form = ".tiff"
+    dif = cv.cvtColor((diffuse_albedo).astype('uint8'), cv.COLOR_BGR2RGB)
+    im = Image.fromarray(dif)
+    im.save(desktop + "diffuse_albedo" + ".png")
+    save(desktop + "mixed", form, mixed_normal)
+    save(desktop + "diffuse",form, diffuse_normal)
+    save(desktop + "specular", form, specular_normal)
+    save(desktop + "filtered", form, filtered_normal)
+    save(desktop + "syn", form, syn)
+
     

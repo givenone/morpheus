@@ -1,12 +1,16 @@
 # blender python module
 import bpy
-from math import radians, atan, sqrt, acos
+
 import os, sys
+
+from math import radians, atan, sqrt, acos
 import configparser
 import ast
 
+conf_path = os.path.abspath(os.path.dirname(__file__))
+conf_path = os.path.join(conf_path, "simulation.conf")
 configuration = configparser.ConfigParser()
-configuration.read('/home/givenone/morpheus/photogeometric/Simulation/blender/simulation.conf')
+configuration.read(conf_path)
 configuration = configuration['simulation']
 
 def displaceLight(lightList, frame_scale):

@@ -1,5 +1,3 @@
-#       der-frame 1 -- </path/to/output/dir> </path/to/input/object>
-# "/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
 import bpy
 import os, sys
 
@@ -12,7 +10,7 @@ import geometry
 import configparser
 import ast
 
-option = "BINARY"
+option = ""#"BINARY"
 
 def get_output_file_path():
     return str(sys.argv[sys.argv.index('--') + 1])
@@ -29,6 +27,7 @@ if __name__ == "__main__":
 
     config = configparser.ConfigParser()
     config.read('./config.conf')
+
     config = config['MAIN']
 
     # Setting
@@ -36,7 +35,8 @@ if __name__ == "__main__":
     scene = bpy.context.scene
 
     util.clean_objects(all = True)
-    #util.setting()
+
+    util.setting()
     
     # Configuration
     frame = config['frame']
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     blender.displaceFrame(vertices,faces, frame_scale)
     blender.displaceRoom(room_scale) 
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
-    
+
     cameras = [{'location': camera_location}]
     blender.displaceCamera(cameras)
     
@@ -73,11 +73,3 @@ if __name__ == "__main__":
         print(pattern_name, "rendering done")
              
     print("Rendering Done")
-
-    # Genearte Geometry Details
-    (w, h) = geometry.depth.getDistanceMap(2160, 3840, output_path, "dist")
-    
-    #geometry.pointcloud.generate_pointcloud()
-    #print("Generated Point Cloud")
-
-    # Reconstruction   
