@@ -81,7 +81,9 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-
+    plt.title("diffuse_albedo")
+    plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
+    plt.show()
     return out_img # BGR
 
 
