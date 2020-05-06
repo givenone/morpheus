@@ -81,9 +81,7 @@ def calculateDiffuseAlbedo(mixed, specular) :
     out_img[...,2] = np.subtract(mixed[...,2], specular)
     
     print("Diffuse Albedo Done")
-    plt.title("diffuse_albedo")
-    plt.imshow(cv.cvtColor((out_img).astype('uint8'), cv.COLOR_BGR2RGB))
-    plt.show()
+
     return out_img # BGR
 
 
@@ -102,11 +100,11 @@ equals the saturation of the complementary gradient S c
 We choosed arbitrary coefficient "128" to use δ as an albedo.
 """
 
-def calculateSpecularAlbedo(images) :
+def calculateSpecularAlbedo(images, imgs) :
 
     H, S, V  = [], [], []
 
-    for img in images:
+    for img in imgs:
         # H S V Separation
         hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV) #HSV
         h, s, v = cv.split(hsv_img)        
@@ -153,6 +151,8 @@ def calculateSpecularAlbedo(images) :
     
     print("Specular Albedo Done")  
     
+    plt.title("specular_albedo")
+   
     return specular_max
 
 """
@@ -298,7 +298,7 @@ def synthesize(diffuse_normal, filtered_normal) :
 def generate_viewing_direction(shape, focalLength, sensor = (0.036, 0.024)) :
     
     height, width, _ = shape
-
+    
     centerX = width/2
     centerY = height/2
     sensor_width = sensor[0]
@@ -331,8 +331,10 @@ if __name__ == "__main__":
     names = ["x", "x_c", "y", "y_c", "z", "z_c"]
     names = [path + name + form for name in names]
     images = []
+    imgs = []
     for name in names :
         img = cv.imread(name, 3) #BGR
+        imgs.append(img)
         arr = array(img).astype('float32')
         images.append(arr)
 
@@ -340,7 +342,7 @@ if __name__ == "__main__":
     
     #vd = pointcloud.generate_viewing_direction(images[0].shape, focalLength = 0.012, sensor = (0.0689, 0.0492))
     
-    specular_albedo = calculateSpecularAlbedo(images)
+    specular_albedo = calculateSpecularAlbedo(images, imgs)
     mixed_albedo = calculateMixedAlbedo(images)
     diffuse_albedo = calculateDiffuseAlbedo(mixed_albedo, specular_albedo)
     
@@ -387,10 +389,13 @@ if __name__ == "__main__":
     save_flag = True
 
     if save_flag :
-        
 
         save("filtered", ".png", filtered_normal)
         save("specular_normal", ".png", specular_normal)
-        save("syn", ".png", syn)
+        
+        from tifffile import imsave
+        rgb_syn = cv.cvtColor(syn, cv.COLOR_BGR2RGB)
+        imsave('syn.tif', rgb_syn)
+        #save("syn", ".png", syn)
 
     
