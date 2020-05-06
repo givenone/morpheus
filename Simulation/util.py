@@ -5,7 +5,7 @@ def setting(**kwargs) :
     scene.render.engine = 'CYCLES' # rendering engine
     bpy.context.scene.cycles.device = "GPU" # GPU support
     bpy.context.scene.cycles.progressive = "BRANCHED_PATH"
-    bpy.context.scene.cycles.aa_samples = 500
+    bpy.context.scene.cycles.aa_samples = 10
     bpy.context.scene.cycles.glossy_bounces = 1
     bpy.context.scene.cycles.max_bounces = 8
     return

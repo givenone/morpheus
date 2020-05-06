@@ -1,5 +1,3 @@
-#       der-frame 1 -- </path/to/output/dir> </path/to/input/object>
-# "/home/givenone/morpheus/photogeometric/Simulation/emily.blend/Object"
 import bpy
 import os, sys
 
@@ -24,11 +22,11 @@ def get_input_obj_path():
 
 if __name__ == "__main__":
     # Args
-    #output_dir_path = get_output_file_path()
+    output_dir_path = get_output_file_path()
     #input_file_path = get_input_obj_path()
 
     config = configparser.ConfigParser()
-    config.read('./config.conf')
+    config.read(output_dir_path)
     config = config['MAIN']
 
     # Setting
@@ -53,7 +51,7 @@ if __name__ == "__main__":
     blender.displaceFrame(vertices,faces, frame_scale)
     blender.displaceRoom(room_scale) 
     lights = blender.BinaryPattern(vertices) if option == "BINARY" else blender.GradientPattern(vertices)
-    
+    print(lights)
     cameras = [{'location': camera_location}]
     blender.displaceCamera(cameras)
     
