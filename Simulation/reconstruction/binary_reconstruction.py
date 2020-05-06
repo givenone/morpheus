@@ -85,9 +85,6 @@ def calculateDiffuseAlbedo(mixed, specular) :
     return out_img # BGR
 
 
-
-
-
 """ 
 color-space separation for the albedo under uniform illumination.
 convert
@@ -387,17 +384,11 @@ if __name__ == "__main__":
 
     save_flag = True
 
-    desktop = ""
-    form = ".tiff"
-
     if save_flag :
-        dif = cv.cvtColor((diffuse_albedo).astype('uint8'), cv.COLOR_BGR2RGB)
-        im = Image.fromarray(dif)
-        im.save(desktop + "diffuse_albedo" + ".png")
-        save(desktop + "mixed", form, mixed_normal)
-        save(desktop + "diffuse",form, diffuse_normal)
-        save(desktop + "specular", form, specular_normal)
-        save(desktop + "filtered", form, filtered_normal)
-        save(desktop + "syn", form, syn)
+        
+
+        save("filtered", ".png", filtered_normal)
+        save("specular_normal", ".png", specular_normal)
+        save("syn", ".png", syn)
 
     
